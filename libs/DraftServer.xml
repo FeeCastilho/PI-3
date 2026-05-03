@@ -1,0 +1,147 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>DraftServer</name>
+    </assembly>
+    <members>
+        <member name="T:Draft.Jogo">
+            <summary>
+            Classe de interface com o jogo "Draftossaurus"
+            Projeto - Sistema Autônomo
+            Thiago Claro
+            </summary>
+        </member>
+        <member name="F:Draft.Jogo.versao">
+            <summary>
+            Versão da DLL do jogo.
+            </summary>
+        </member>
+        <member name="M:Draft.Jogo.CriarPartida(System.String,System.String,System.String)">
+            <summary>
+            Cria uma nova partida
+            </summary>
+            <param name="nomePartida">Nome da partida, no máximo 15 caracteres</param>
+            <param name="senha">Senha para acesso à partida, no máximo 10 caracteres</param>
+            <param name="grupo">Nome do Grupo</param>
+            <returns>número inteiro com o Id da partida</returns>
+        </member>
+        <member name="M:Draft.Jogo.ListarPartidas(System.String)">
+            <summary>
+            Retorna a lista de partidas do tipo solicitado
+            </summary>
+            <param name="status">Envie um caracter: (T)odas, (A)bertas, (J)ogando, (E)ncerradas</param>
+            <returns>Id, nome, data de criação e status</returns>
+        </member>
+        <member name="M:Draft.Jogo.Entrar(System.Int32,System.String,System.String)">
+            <summary>
+            Cria um jogador e o coloca em uma partida
+            </summary>
+            <param name="partida">Id da partida à entrar</param>
+            <param name="nomeJogador">Nome do jogador, máx 20 caracteres, só pode conter caracteres alfabéticos</param>
+            <param name="senhaPartida">Senha da partida</param>
+            <returns>id do jogador e a senha gerada para ele</returns>
+        </member>
+        <member name="M:Draft.Jogo.ListarJogadores(System.Int32)">
+            <summary>
+            Lista de jogadores de uma determinada partida
+            </summary>
+            <param name="partida">Id da partida</param>
+            <returns>Id do Jogador, nome, pontuação atual</returns>
+        </member>
+        <member name="M:Draft.Jogo.Iniciar(System.Int32,System.String)">
+            <summary>
+            Envia um comando iniciando uma determinada partida. Muda o Status da mesma de A para J
+            </summary>
+            <param name="jogador">Id do jogador</param>
+            <param name="senha">Senha do jogador</param>
+            <returns>Um idJogador indicando quem foi sorteado para iniciar jogando o dado, e o primeiro dado jogado</returns>
+        </member>
+        <member name="M:Draft.Jogo.ListarFacesDado">
+            <summary>
+            Exibe uma lista com as faces do dado utilizado no jogo
+            </summary>
+            <returns>ID da face, Nome e Regra</returns>
+        </member>
+        <member name="M:Draft.Jogo.ListarCercados">
+            <summary>
+            Exibe uma lista com id e nome de todos os cercados.
+            </summary>
+            <returns>id do cercado, nome e descrição da regra de colocação</returns>
+        </member>
+        <member name="M:Draft.Jogo.ListarDinossauros(System.Boolean)">
+            <summary>
+            Exibe uma lista com as 6 espécies de dinossauros do jogo
+            </summary>
+            <returns>id do dinossauro, nome e cor</returns>
+        </member>
+        <member name="M:Draft.Jogo.ExibirMao(System.Int32,System.String)">
+            <summary>
+            Retorna os dinossauros que estão na mão do jogador
+            </summary>
+            <param name="jogador">Id do jogador</param>
+            <param name="senha">Senha do jogador</param>
+            <returns>Dinossauro, quantidade</returns>
+        </member>
+        <member name="M:Draft.Jogo.ExibirTabuleiro(System.Int32,System.String)">
+            <summary>
+            Exibe o estado atual do tabuleiro (zoológico) de um determinado jogador. Inclusive o turno atual.
+            </summary>
+            <param name="jogador">id do Jogador</param>
+            <param name="senha">senha do jogador</param>
+            <returns>Cercado, dinossauro, quantidade</returns>
+        </member>
+        <member name="M:Draft.Jogo.ExibirTabuleiro(System.Int32)">
+            <summary>
+            Exibe o estado atual do tabuleiro (zoológico) de um determinado jogador. Apenas turnos anteriores.
+            </summary>
+            <param name="jogador">id do jogador</param>
+            <returns>Cercado, dinossauro, quantidade</returns>
+        </member>
+        <member name="M:Draft.Jogo.VerificarPartida(System.Int32)">
+            <summary>
+            Exibe o status atual da partida
+            </summary>
+            <param name="partida">Id da partida</param>
+            <returns>Status da Partida, numero do turno, status do turno, id do jogador com o dado e face do dado que foi sorteada</returns>
+        </member>
+        <member name="M:Draft.Jogo.VerificarTurno(System.Int32)">
+            <summary>
+            Lista de Jogadas de um determinado turno
+            </summary>
+            <param name="partida">id da Partida</param>
+            <returns>Status do turno, jogador do dado, dado sorteado e uma lista das jogadas</returns>
+        </member>
+        <member name="M:Draft.Jogo.VerificarTurno(System.Int32,System.Int32)">
+            <summary>
+            Lista de Jogadas de um determinado turno
+            </summary>
+            <param name="partida">id da Partida</param>
+            <param name="turno">numero do turno</param>
+            <returns>Status do turno, jogador do dado, dado sorteado e uma lista das jogadas</returns>
+        </member>
+        <member name="M:Draft.Jogo.ListarPontuacao(System.Int32)">
+            <summary>
+            Exibe o cálculo da pontuação após a partida
+            </summary>
+            <param name="jogador">Id do jogador a ser consultado</param>
+            <returns>A pontuação incrementando a cada etapa do cálculo</returns>
+        </member>
+        <member name="M:Draft.Jogo.ListarHistorico(System.Int32)">
+            <summary>
+            Lista o histórico da partida
+            </summary>
+            <param name="partida">Id da partida</param>
+            <returns>Texto completo do histórico</returns>
+        </member>
+        <member name="M:Draft.Jogo.Jogar(System.Int32,System.String,System.String,System.String)">
+            <summary>
+            Faz uma jogada, colocando um dinossauro no zoológico
+            </summary>
+            <param name="jogador">Id do jogador</param>
+            <param name="senha">Senha do jogador</param>
+            <param name="dinossauro">código do dinossauro a ser posicionado</param>
+            <param name="cercado">código do cercado que vai receber o dinossauro</param>
+            <returns>Número do próximo turno, ou 0 caso a partida tenha encerrado.</returns>
+        </member>
+    </members>
+</doc>
