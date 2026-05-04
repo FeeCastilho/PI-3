@@ -7,13 +7,13 @@ using Draft; // namespace da DLL DraftServer
 namespace DraftosaurusClient.Services;
 
 /// <summary>
-/// Camada de serviço que encapsula todas as chamadas à DLL DraftServer.
-/// Centraliza tratamento de erros, conversão de tipos e logging.
+/// Camada de servico que encapsula todas as chamadas a DLL DraftServer.
+/// Centraliza tratamento de erros, conversao de tipos e logging.
 ///
-/// IMPORTANTE: a DLL é stateless e SINGLETON. Em multi-jogador real
-/// (cada jogador na sua máquina), todos os clientes batem no mesmo
-/// servidor por trás da DLL — então não há sincronização local: o
-/// estado da partida é sempre puxado da DLL via VerificarPartida/Turno.
+/// IMPORTANTE: a DLL e stateless e SINGLETON. Em multi-jogador real
+/// (cada jogador na sua maquina), todos os clientes batem no mesmo
+/// servidor por tras da DLL; entao nao ha sincronizacao local: o
+/// estado da partida e sempre puxado da DLL via VerificarPartida/Turno.
 /// </summary>
 public class DraftService
 {
@@ -24,16 +24,16 @@ public class DraftService
         {
             try
             {
-                var t = typeof(Jogo);
-                var f = t.GetField("versao",
+                var tipoJogo = typeof(Jogo);
+                var campoVersao = tipoJogo.GetField("versao",
                     System.Reflection.BindingFlags.Public
                   | System.Reflection.BindingFlags.NonPublic
                   | System.Reflection.BindingFlags.Static
                   | System.Reflection.BindingFlags.Instance);
-                if (f == null) return "?";
-                // A DLL deste projeto expõe os membros como estáticos
-                var v = f.GetValue(null);
-                return v?.ToString() ?? "?";
+                if (campoVersao == null) return "?";
+                // A DLL deste projeto expoe os membros como estaticos
+                var valorVersao = campoVersao.GetValue(null);
+                return valorVersao?.ToString() ?? "?";
             }
             catch { return "?"; }
         }
@@ -46,26 +46,26 @@ public class DraftService
     /// <summary>
     /// Cria uma nova partida.
     /// </summary>
-    /// <param name="nome">Nome (até 15 chars)</param>
-    /// <param name="senha">Senha de acesso (até 10 chars)</param>
+    /// <param name="nome">Nome (ate 15 chars)</param>
+    /// <param name="senha">Senha de acesso (ate 10 chars)</param>
     /// <param name="grupo">Nome do grupo</param>
     /// <returns>Id da partida criada</returns>
     public int CriarPartida(string nome, string senha, string grupo)
     {
-        var ret = Jogo.CriarPartida(nome, senha, grupo);
+        var respostaDll = Jogo.CriarPartida(nome, senha, grupo);
 
-        if (ret != null && int.TryParse(ret.ToString(), out var id))
+        if (respostaDll != null && int.TryParse(respostaDll.ToString(), out var id))
             return id;
 
-        var dt = DllHelper.AsDataTable(ret);
-        if (dt != null && dt.Rows.Count > 0)
+        var tabela = DllHelper.AsDataTable(respostaDll);
+        if (tabela != null && tabela.Rows.Count > 0)
         {
-            var r = dt.Rows[0];
-            return DllHelper.IntAt(r, 0);
+            var linhaTabela = tabela.Rows[0];
+            return DllHelper.InteiroNaPosicao(linhaTabela, 0);
         }
 
         throw new InvalidOperationException(
-            "Resposta inesperada de CriarPartida(): " + (ret?.ToString() ?? "NULL")
+            "Resposta inesperada de CriarPartida(): " + (respostaDll?.ToString() ?? "NULL")
         );
     }
 
@@ -74,36 +74,37 @@ public class DraftService
     /// </summary>
     public List<Partida> ListarPartidas(char status = 'T')
     {
-        var ret = Jogo.ListarPartidas(status.ToString());
+        var respostaDll = Jogo.ListarPartidas(status.ToString());
         var lista = new List<Partida>();
 
-        if (ret is string texto)
+        if (respostaDll is string texto)
             return ParsePartidasTexto(texto);
 
-        var dt = DllHelper.AsDataTable(ret);
-        if (dt == null) return lista;
+        var tabela = DllHelper.AsDataTable(respostaDll);
+        if (tabela == null) return lista;
 
-        foreach (DataRow r in dt.Rows)
+        foreach (DataRow linhaTabela in tabela.Rows)
         {
             // Tenta primeiro pelo nome conhecido, depois posicional
-            int id = dt.Columns.Contains("Id") ? DllHelper.Int(r, "Id") : DllHelper.IntAt(r, 0);
-            string nome = dt.Columns.Contains("Nome") ? DllHelper.Str(r, "Nome") : DllHelper.StrAt(r, 1);
-            DateTime data = dt.Columns.Contains("DataCriacao")
-                ? DllHelper.DateT(r, "DataCriacao")
-                : (DateTime.TryParse(DllHelper.StrAt(r, 2), out var d) ? d : DateTime.MinValue);
-            string st = dt.Columns.Contains("Status") ? DllHelper.Str(r, "Status") : DllHelper.StrAt(r, 3);
+            int id = tabela.Columns.Contains("Id") ? DllHelper.Inteiro(linhaTabela, "Id") : DllHelper.InteiroNaPosicao(linhaTabela, 0);
+            string nome = tabela.Columns.Contains("Nome") ? DllHelper.Texto(linhaTabela, "Nome") : DllHelper.TextoNaPosicao(linhaTabela, 1);
+            DateTime data = tabela.Columns.Contains("DataCriacao")
+                ? DllHelper.Data(linhaTabela, "DataCriacao")
+                : (DateTime.TryParse(DllHelper.TextoNaPosicao(linhaTabela, 2), out var d) ? d : DateTime.MinValue);
+            string estadoPartida = tabela.Columns.Contains("Status") ? DllHelper.Texto(linhaTabela, "Status") : DllHelper.TextoNaPosicao(linhaTabela, 3);
 
             lista.Add(new Partida
             {
                 Id = id,
                 Nome = nome,
                 DataCriacao = data,
-                Status = string.IsNullOrEmpty(st) ? 'A' : char.ToUpperInvariant(st[0])
+                Status = string.IsNullOrEmpty(estadoPartida) ? 'A' : char.ToUpperInvariant(estadoPartida[0])
             });
         }
         return lista;
     }
 
+    // A funcao serve para tratar o caso em que a DLL devolve partidas em texto CSV em vez de tabela.
     private static List<Partida> ParsePartidasTexto(string texto)
     {
         var lista = new List<Partida>();
@@ -145,23 +146,24 @@ public class DraftService
     /// </summary>
     public (int idJogador, string senhaJogador) Entrar(int idPartida, string nomeJogador, string senhaPartida)
     {
-        var ret = Jogo.Entrar(idPartida, nomeJogador, senhaPartida);
+        var respostaDll = Jogo.Entrar(idPartida, nomeJogador, senhaPartida);
 
-        if (ret is string texto)
+        if (respostaDll is string texto)
             return ParseEntrarTexto(texto);
 
-        var dt = DllHelper.AsDataTable(ret);
+        var tabela = DllHelper.AsDataTable(respostaDll);
 
-        if (dt != null && dt.Rows.Count > 0)
+        if (tabela != null && tabela.Rows.Count > 0)
         {
-            var r = dt.Rows[0];
-            int id = DllHelper.IntAt(r, 0);
-            string senha = DllHelper.StrAt(r, 1);
+            var linhaTabela = tabela.Rows[0];
+            int id = DllHelper.InteiroNaPosicao(linhaTabela, 0);
+            string senha = DllHelper.TextoNaPosicao(linhaTabela, 1);
             return (id, senha);
         }
-        throw new InvalidOperationException("Resposta inesperada de Entrar(): " + (ret?.ToString() ?? "NULL"));
+        throw new InvalidOperationException("Resposta inesperada de Entrar(): " + (respostaDll?.ToString() ?? "NULL"));
     }
 
+    // A funcao serve para separar o texto retornado pela DLL ao entrar na partida.
     private static (int idJogador, string senhaJogador) ParseEntrarTexto(string texto)
     {
         texto = texto.Trim();
@@ -178,30 +180,31 @@ public class DraftService
         throw new InvalidOperationException(texto);
     }
 
-    /// <summary>Lista jogadores da partida (com pontuação se encerrada).</summary>
+    /// <summary>Lista jogadores da partida (com pontuacao se encerrada).</summary>
     public List<Jogador> ListarJogadores(int idPartida)
     {
-        var ret = Jogo.ListarJogadores(idPartida);
+        var respostaDll = Jogo.ListarJogadores(idPartida);
         var lista = new List<Jogador>();
 
-        if (ret is string texto)
+        if (respostaDll is string texto)
             return ParseJogadoresTexto(texto);
 
-        var dt = DllHelper.AsDataTable(ret);
-        if (dt == null) return lista;
+        var tabela = DllHelper.AsDataTable(respostaDll);
+        if (tabela == null) return lista;
 
-        foreach (DataRow r in dt.Rows)
+        foreach (DataRow linhaTabela in tabela.Rows)
         {
             lista.Add(new Jogador
             {
-                Id = DllHelper.IntAt(r, 0),
-                Nome = DllHelper.StrAt(r, 1),
-                Pontuacao = DllHelper.IntAt(r, 2)
+                Id = DllHelper.InteiroNaPosicao(linhaTabela, 0),
+                Nome = DllHelper.TextoNaPosicao(linhaTabela, 1),
+                Pontuacao = DllHelper.InteiroNaPosicao(linhaTabela, 2)
             });
         }
         return lista;
     }
 
+    // A funcao serve para tratar o caso em que a DLL devolve jogadores em linhas de texto CSV.
     private static List<Jogador> ParseJogadoresTexto(string texto)
     {
         var lista = new List<Jogador>();
@@ -225,20 +228,21 @@ public class DraftService
     /// </summary>
     public (int idJogadorComDado, string faceDado) Iniciar(int idJogador, string senha)
     {
-        var ret = Jogo.Iniciar(idJogador, senha);
+        var respostaDll = Jogo.Iniciar(idJogador, senha);
 
-        if (ret is string texto)
+        if (respostaDll is string texto)
             return ParseIniciarTexto(texto);
 
-        var dt = DllHelper.AsDataTable(ret);
-        if (dt != null && dt.Rows.Count > 0)
+        var tabela = DllHelper.AsDataTable(respostaDll);
+        if (tabela != null && tabela.Rows.Count > 0)
         {
-            var r = dt.Rows[0];
-            return (DllHelper.IntAt(r, 0), DllHelper.StrAt(r, 1));
+            var linhaTabela = tabela.Rows[0];
+            return (DllHelper.InteiroNaPosicao(linhaTabela, 0), DllHelper.TextoNaPosicao(linhaTabela, 1));
         }
-        throw new InvalidOperationException("Resposta inesperada de Iniciar(): " + (ret?.ToString() ?? "NULL"));
+        throw new InvalidOperationException("Resposta inesperada de Iniciar(): " + (respostaDll?.ToString() ?? "NULL"));
     }
 
+    // Esta funcao faz interpretar a resposta em texto do metodo Iniciar da DLL.
     private static (int idJogadorComDado, string faceDado) ParseIniciarTexto(string texto)
     {
         texto = texto.Trim();
@@ -255,53 +259,53 @@ public class DraftService
     // ESTADO DO JOGO
     // ============================================================
 
-    /// <summary>Mão do jogador: dicionário código->quantidade.</summary>
+    /// <summary>Mao do jogador: dicionario codigo->quantidade.</summary>
     public Dictionary<string, int> ExibirMao(int idJogador, string senha)
     {
-        var ret = Jogo.ExibirMao(idJogador, senha);
+        var respostaDll = Jogo.ExibirMao(idJogador, senha);
         var mao = new Dictionary<string, int>();
 
-        if (ret is string texto)
+        if (respostaDll is string texto)
         {
             if (TextoEhErro(texto)) throw new InvalidOperationException(texto.Trim());
             foreach (var campos in LinhasCsv(texto))
             {
                 if (campos.Length < 2) continue;
-                var cod = campos[0].Trim();
-                if (cod.Length == 0) continue;
-                mao[cod] = int.TryParse(campos[1].Trim(), out var qtd) ? qtd : 0;
+                var codigo = campos[0].Trim();
+                if (codigo.Length == 0) continue;
+                mao[codigo] = int.TryParse(campos[1].Trim(), out var quantidade) ? quantidade : 0;
             }
             if (mao.Count == 0 && !string.IsNullOrWhiteSpace(texto))
                 throw new InvalidOperationException(texto.Trim());
             return mao;
         }
 
-        var dt = DllHelper.AsDataTable(ret);
-        if (dt == null) return mao;
+        var tabela = DllHelper.AsDataTable(respostaDll);
+        if (tabela == null) return mao;
 
-        foreach (DataRow r in dt.Rows)
+        foreach (DataRow linhaTabela in tabela.Rows)
         {
-            string cod = DllHelper.StrAt(r, 0);
-            int qtd = DllHelper.IntAt(r, 1);
-            if (!string.IsNullOrEmpty(cod))
-                mao[cod] = qtd;
+            string codigo = DllHelper.TextoNaPosicao(linhaTabela, 0);
+            int quantidade = DllHelper.InteiroNaPosicao(linhaTabela, 1);
+            if (!string.IsNullOrEmpty(codigo))
+                mao[codigo] = quantidade;
         }
         return mao;
     }
 
     /// <summary>
-    /// Retorna o tabuleiro do jogador como dicionário [cercado] -> lista de códigos de dinossauros.
-    /// Se senha for fornecida, mostra também a jogada do turno corrente.
+    /// Retorna o tabuleiro do jogador como dicionario [cercado] -> lista de codigos de dinossauros.
+    /// Se senha for fornecida, mostra tambem a jogada do turno corrente.
     /// </summary>
     public Dictionary<string, List<string>> ExibirTabuleiro(int idJogador, string? senha = null)
     {
-        object ret = senha == null
+        object respostaDll = senha == null
             ? Jogo.ExibirTabuleiro(idJogador)
             : Jogo.ExibirTabuleiro(idJogador, senha);
 
         var tab = new Dictionary<string, List<string>>();
 
-        if (ret is string texto)
+        if (respostaDll is string texto)
         {
             if (TextoEhErro(texto)) throw new InvalidOperationException(texto.Trim());
             foreach (var campos in LinhasCsv(texto))
@@ -309,74 +313,76 @@ public class DraftService
                 if (campos.Length < 3) continue;
                 string cercado = campos[0].Trim();
                 string dino = campos[1].Trim();
-                int qtd = int.TryParse(campos[2].Trim(), out var n) ? n : 0;
-                AdicionarDinosTabuleiro(tab, cercado, dino, qtd);
+                int quantidade = int.TryParse(campos[2].Trim(), out var n) ? n : 0;
+                AdicionarDinosTabuleiro(tab, cercado, dino, quantidade);
             }
             return tab;
         }
 
-        var dt = DllHelper.AsDataTable(ret);
-        if (dt == null) return tab;
+        var tabela = DllHelper.AsDataTable(respostaDll);
+        if (tabela == null) return tab;
 
-        // Esperado: cercado, dinossauro, qtd
-        foreach (DataRow r in dt.Rows)
+        // Esperado: cercado, dinossauro, quantidade
+        foreach (DataRow linhaTabela in tabela.Rows)
         {
-            string cercado = DllHelper.StrAt(r, 0);
-            string dino = DllHelper.StrAt(r, 1);
-            int qtd = DllHelper.IntAt(r, 2);
-            AdicionarDinosTabuleiro(tab, cercado, dino, qtd);
+            string cercado = DllHelper.TextoNaPosicao(linhaTabela, 0);
+            string dino = DllHelper.TextoNaPosicao(linhaTabela, 1);
+            int quantidade = DllHelper.InteiroNaPosicao(linhaTabela, 2);
+            AdicionarDinosTabuleiro(tab, cercado, dino, quantidade);
         }
         return tab;
     }
 
-    private static void AdicionarDinosTabuleiro(Dictionary<string, List<string>> tab, string cercado, string dino, int qtd)
+    // A funcao auxiliar serve para transformar quantidade em uma lista de dinossauros no cercado.
+    private static void AdicionarDinosTabuleiro(Dictionary<string, List<string>> tab, string cercado, string dino, int quantidade)
     {
         if (string.IsNullOrEmpty(cercado) || string.IsNullOrEmpty(dino)) return;
 
         if (!tab.ContainsKey(cercado))
             tab[cercado] = new List<string>();
-        for (int i = 0; i < qtd; i++)
+        for (int i = 0; i < quantidade; i++)
             tab[cercado].Add(dino);
     }
 
     /// <summary>Estado atual da partida (status, turno, dado etc.).</summary>
     public EstadoPartida VerificarPartida(int idPartida)
     {
-        var ret = Jogo.VerificarPartida(idPartida);
-        var st = new EstadoPartida();
+        var respostaDll = Jogo.VerificarPartida(idPartida);
+        var estadoPartida = new EstadoPartida();
 
-        if (ret is string texto)
+        if (respostaDll is string texto)
             return ParseEstadoPartidaTexto(texto);
 
-        var dt = DllHelper.AsDataTable(ret);
-        if (dt == null || dt.Rows.Count == 0) return st;
+        var tabela = DllHelper.AsDataTable(respostaDll);
+        if (tabela == null || tabela.Rows.Count == 0) return estadoPartida;
 
-        var r = dt.Rows[0];
+        var linhaTabela = tabela.Rows[0];
         // Status partida, turno atual, status turno, idJogadorDado, faceDado
-        string sp = DllHelper.StrAt(r, 0);
-        st.Status = string.IsNullOrEmpty(sp) ? 'J' : sp[0];
-        st.TurnoAtual = DllHelper.IntAt(r, 1);
-        string stt = DllHelper.StrAt(r, 2);
-        st.StatusTurno = string.IsNullOrEmpty(stt) ? 'A' : stt[0];
-        st.IdJogadorComDado = DllHelper.IntAt(r, 3);
-        st.FaceDado = DllHelper.StrAt(r, 4);
-        return st;
+        string statusPartidaTexto = DllHelper.TextoNaPosicao(linhaTabela, 0);
+        estadoPartida.Status = string.IsNullOrEmpty(statusPartidaTexto) ? 'J' : statusPartidaTexto[0];
+        estadoPartida.TurnoAtual = DllHelper.InteiroNaPosicao(linhaTabela, 1);
+        string statusTurnoTexto = DllHelper.TextoNaPosicao(linhaTabela, 2);
+        estadoPartida.StatusTurno = string.IsNullOrEmpty(statusTurnoTexto) ? 'A' : statusTurnoTexto[0];
+        estadoPartida.IdJogadorComDado = DllHelper.InteiroNaPosicao(linhaTabela, 3);
+        estadoPartida.FaceDado = DllHelper.TextoNaPosicao(linhaTabela, 4);
+        return estadoPartida;
     }
 
+    // A funcao serve para tratar o caso em que o estado da partida vem como texto separado por virgula ou ponto e virgula.
     private static EstadoPartida ParseEstadoPartidaTexto(string texto)
     {
-        var st = new EstadoPartida();
+        var estadoPartida = new EstadoPartida();
         var campos = texto.Trim().Split(new[] { ',', ';' });
-        if (campos.Length == 0 || string.IsNullOrWhiteSpace(campos[0])) return st;
+        if (campos.Length == 0 || string.IsNullOrWhiteSpace(campos[0])) return estadoPartida;
 
-        st.Status = char.ToUpperInvariant(campos[0].Trim()[0]);
-        st.TurnoAtual = campos.Length > 1 && int.TryParse(campos[1].Trim(), out var turno) ? turno : 0;
-        st.StatusTurno = campos.Length > 2 && !string.IsNullOrWhiteSpace(campos[2])
+        estadoPartida.Status = char.ToUpperInvariant(campos[0].Trim()[0]);
+        estadoPartida.TurnoAtual = campos.Length > 1 && int.TryParse(campos[1].Trim(), out var turno) ? turno : 0;
+        estadoPartida.StatusTurno = campos.Length > 2 && !string.IsNullOrWhiteSpace(campos[2])
             ? char.ToUpperInvariant(campos[2].Trim()[0])
             : 'A';
-        st.IdJogadorComDado = campos.Length > 3 && int.TryParse(campos[3].Trim(), out var idDado) ? idDado : 0;
-        st.FaceDado = campos.Length > 4 ? campos[4].Trim() : "";
-        return st;
+        estadoPartida.IdJogadorComDado = campos.Length > 3 && int.TryParse(campos[3].Trim(), out var idDado) ? idDado : 0;
+        estadoPartida.FaceDado = campos.Length > 4 ? campos[4].Trim() : "";
+        return estadoPartida;
     }
 
     private static IEnumerable<string[]> LinhasCsv(string texto)
@@ -392,11 +398,12 @@ public class DraftService
         }
     }
 
+    // Esta funcao cuida de saber se a resposta textual da DLL e uma mensagem de erro.
     private static bool TextoEhErro(string texto)
     {
-        var t = texto.TrimStart();
-        return t.StartsWith("ERRO", StringComparison.OrdinalIgnoreCase)
-            || t.StartsWith("ERROR", StringComparison.OrdinalIgnoreCase);
+        var textoSemEspacoInicial = texto.TrimStart();
+        return textoSemEspacoInicial.StartsWith("ERRO", StringComparison.OrdinalIgnoreCase)
+            || textoSemEspacoInicial.StartsWith("ERROR", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -404,59 +411,59 @@ public class DraftService
     /// </summary>
     public (EstadoPartida estado, List<JogadaTurno> jogadas) VerificarTurno(int idPartida, int? turno = null)
     {
-        object ret = turno.HasValue
+        object respostaDll = turno.HasValue
             ? Jogo.VerificarTurno(idPartida, turno.Value)
             : Jogo.VerificarTurno(idPartida);
 
-        if (ret is string texto)
+        if (respostaDll is string texto)
             return ParseVerificarTurnoTexto(texto);
 
-        // Aqui pode vir um DataSet com 2 tabelas (cabeçalho + jogadas) OU um único DataTable
+        // Aqui pode vir um DataSet com 2 tabelas (cabecalho + jogadas) OU um unico DataTable
         var estado = new EstadoPartida();
         var jogadas = new List<JogadaTurno>();
 
-        if (ret is DataSet ds)
+        if (respostaDll is DataSet conjuntoTabelas)
         {
-            if (ds.Tables.Count > 0 && ds.Tables[0].Rows.Count > 0)
+            if (conjuntoTabelas.Tables.Count > 0 && conjuntoTabelas.Tables[0].Rows.Count > 0)
             {
-                var r = ds.Tables[0].Rows[0];
-                string st = DllHelper.StrAt(r, 0);
-                estado.StatusTurno = string.IsNullOrEmpty(st) ? 'A' : st[0];
-                estado.IdJogadorComDado = DllHelper.IntAt(r, 1);
-                estado.FaceDado = DllHelper.StrAt(r, 2);
+                var linhaTabela = conjuntoTabelas.Tables[0].Rows[0];
+                string estadoPartida = DllHelper.TextoNaPosicao(linhaTabela, 0);
+                estado.StatusTurno = string.IsNullOrEmpty(estadoPartida) ? 'A' : estadoPartida[0];
+                estado.IdJogadorComDado = DllHelper.InteiroNaPosicao(linhaTabela, 1);
+                estado.FaceDado = DllHelper.TextoNaPosicao(linhaTabela, 2);
             }
-            if (ds.Tables.Count > 1)
+            if (conjuntoTabelas.Tables.Count > 1)
             {
-                foreach (DataRow r in ds.Tables[1].Rows)
+                foreach (DataRow linhaTabela in conjuntoTabelas.Tables[1].Rows)
                 {
                     jogadas.Add(new JogadaTurno
                     {
-                        IdJogador = DllHelper.IntAt(r, 0),
-                        CodigoDinossauro = DllHelper.StrAt(r, 1),
-                        CodigoCercado = DllHelper.StrAt(r, 2)
+                        IdJogador = DllHelper.InteiroNaPosicao(linhaTabela, 0),
+                        CodigoDinossauro = DllHelper.TextoNaPosicao(linhaTabela, 1),
+                        CodigoCercado = DllHelper.TextoNaPosicao(linhaTabela, 2)
                     });
                 }
             }
         }
         else
         {
-            var dt = DllHelper.AsDataTable(ret);
-            if (dt != null && dt.Rows.Count > 0)
+            var tabela = DllHelper.AsDataTable(respostaDll);
+            if (tabela != null && tabela.Rows.Count > 0)
             {
-                // Primeira linha = cabeçalho do turno; demais = jogadas
-                var r0 = dt.Rows[0];
-                string st = DllHelper.StrAt(r0, 0);
-                estado.StatusTurno = string.IsNullOrEmpty(st) ? 'A' : st[0];
-                estado.IdJogadorComDado = DllHelper.IntAt(r0, 1);
-                estado.FaceDado = DllHelper.StrAt(r0, 2);
-                for (int i = 1; i < dt.Rows.Count; i++)
+                // Primeira linha = cabecalho do turno; demais = jogadas
+                var linhaCabecalho = tabela.Rows[0];
+                string estadoPartida = DllHelper.TextoNaPosicao(linhaCabecalho, 0);
+                estado.StatusTurno = string.IsNullOrEmpty(estadoPartida) ? 'A' : estadoPartida[0];
+                estado.IdJogadorComDado = DllHelper.InteiroNaPosicao(linhaCabecalho, 1);
+                estado.FaceDado = DllHelper.TextoNaPosicao(linhaCabecalho, 2);
+                for (int i = 1; i < tabela.Rows.Count; i++)
                 {
-                    var r = dt.Rows[i];
+                    var linhaTabela = tabela.Rows[i];
                     jogadas.Add(new JogadaTurno
                     {
-                        IdJogador = DllHelper.IntAt(r, 0),
-                        CodigoDinossauro = DllHelper.StrAt(r, 1),
-                        CodigoCercado = DllHelper.StrAt(r, 2)
+                        IdJogador = DllHelper.InteiroNaPosicao(linhaTabela, 0),
+                        CodigoDinossauro = DllHelper.TextoNaPosicao(linhaTabela, 1),
+                        CodigoCercado = DllHelper.TextoNaPosicao(linhaTabela, 2)
                     });
                 }
             }
@@ -464,7 +471,7 @@ public class DraftService
         return (estado, jogadas);
     }
 
-    /// <summary>Histórico textual da partida (para acompanhamento humano).</summary>
+    /// <summary>Historico textual da partida (para acompanhamento humano).</summary>
     private static (EstadoPartida estado, List<JogadaTurno> jogadas) ParseVerificarTurnoTexto(string texto)
     {
         if (TextoEhErro(texto))
@@ -473,7 +480,7 @@ public class DraftService
         var estado = new EstadoPartida();
         var jogadas = new List<JogadaTurno>();
         var linhas = LinhasCsv(texto)
-            .Select(campos => campos.Select(c => c.Trim()).ToArray())
+            .Select(campos => campos.Select(campo => campo.Trim()).ToArray())
             .Where(campos => campos.Length > 0 && !string.IsNullOrWhiteSpace(campos[0]))
             .ToList();
 
@@ -494,6 +501,7 @@ public class DraftService
         return (estado, jogadas);
     }
 
+    // A funcao serve para preencher status do turno, jogador do dado e face do dado.
     private static void PreencherCabecalhoTurno(EstadoPartida estado, string[] campos)
     {
         estado.StatusTurno = campos.Length > 0 && !string.IsNullOrWhiteSpace(campos[0])
@@ -505,12 +513,14 @@ public class DraftService
         estado.FaceDado = campos.Length > 2 ? campos[2] : "";
     }
 
+    // Esta funcao faz ler varias jogadas que vieram na mesma linha.
     private static void AdicionarJogadasDeCampos(List<JogadaTurno> jogadas, string[] campos, int inicio)
     {
         for (int i = inicio; i + 2 < campos.Length; i += 3)
             AdicionarJogada(jogadas, campos, i);
     }
 
+    // Esta funcao cuida de transformar tres campos em uma jogada do turno.
     private static void AdicionarJogada(List<JogadaTurno> jogadas, string[] campos, int inicio)
     {
         if (campos.Length <= inicio + 2)
@@ -527,16 +537,17 @@ public class DraftService
         });
     }
 
+    // A funcao serve para buscar o historico textual da partida.
     public string ListarHistorico(int idPartida)
     {
-        var ret = Jogo.ListarHistorico(idPartida);
-        if (ret is string s) return s;
-        var dt = DllHelper.AsDataTable(ret);
-        if (dt == null) return "";
-        var sb = new System.Text.StringBuilder();
-        foreach (DataRow r in dt.Rows)
-            sb.AppendLine(DllHelper.StrAt(r, 0));
-        return sb.ToString();
+        var respostaDll = Jogo.ListarHistorico(idPartida);
+        if (respostaDll is string historicoEmTexto) return historicoEmTexto;
+        var tabela = DllHelper.AsDataTable(respostaDll);
+        if (tabela == null) return "";
+        var textoMontado = new System.Text.StringBuilder();
+        foreach (DataRow linhaTabela in tabela.Rows)
+            textoMontado.AppendLine(DllHelper.TextoNaPosicao(linhaTabela, 0));
+        return textoMontado.ToString();
     }
 
     // ============================================================
@@ -544,26 +555,26 @@ public class DraftService
     // ============================================================
 
     /// <summary>
-    /// Realiza uma jogada. Retorna o número do próximo turno (0 se a partida acabou).
+    /// Realiza uma jogada. Retorna o numero do proximo turno (0 se a partida acabou).
     /// </summary>
     public int Jogar(int idJogador, string senha, string codDinossauro, string codCercado)
     {
-        var ret = Jogo.Jogar(idJogador, senha, codDinossauro, codCercado);
-        if (ret == null)
+        var respostaDll = Jogo.Jogar(idJogador, senha, codDinossauro, codCercado);
+        if (respostaDll == null)
             return -1;
 
-        string texto = ret.ToString() ?? "";
+        string texto = respostaDll.ToString() ?? "";
         if (TextoEhErro(texto))
             throw new InvalidOperationException(texto.Trim());
 
-        if (int.TryParse(texto.Trim(), out var proxTurno))
-            return proxTurno;
+        if (int.TryParse(texto.Trim(), out var proximoTurno))
+            return proximoTurno;
 
-        var dt = DllHelper.AsDataTable(ret);
-        if (dt != null && dt.Rows.Count > 0)
+        var tabela = DllHelper.AsDataTable(respostaDll);
+        if (tabela != null && tabela.Rows.Count > 0)
         {
-            var r = dt.Rows[0];
-            return DllHelper.IntAt(r, 0);
+            var linhaTabela = tabela.Rows[0];
+            return DllHelper.InteiroNaPosicao(linhaTabela, 0);
         }
 
         // Algumas versoes da DLL gravam a jogada e retornam texto vazio/OK.
@@ -572,129 +583,119 @@ public class DraftService
     }
 
     // ============================================================
-    // METADADOS (estáticos do jogo)
+    // METADADOS (estaticos do jogo)
     // ============================================================
 
+    // Esta funcao faz consultar as faces do dado cadastradas na DLL.
     public List<FaceDado> ListarFacesDado()
     {
-        var ret = Jogo.ListarFacesDado();
-        var dt = DllHelper.AsDataTable(ret);
+        var respostaDll = Jogo.ListarFacesDado();
+        var tabela = DllHelper.AsDataTable(respostaDll);
         var lista = new List<FaceDado>();
-        if (dt == null) return lista;
-        foreach (DataRow r in dt.Rows)
+        if (tabela == null) return lista;
+        foreach (DataRow linhaTabela in tabela.Rows)
         {
             lista.Add(new FaceDado
             {
-                Codigo = DllHelper.StrAt(r, 0),
-                Nome = DllHelper.StrAt(r, 1),
-                Descricao = DllHelper.StrAt(r, 2)
+                Codigo = DllHelper.TextoNaPosicao(linhaTabela, 0),
+                Nome = DllHelper.TextoNaPosicao(linhaTabela, 1),
+                Descricao = DllHelper.TextoNaPosicao(linhaTabela, 2)
             });
         }
         return lista;
     }
 
+    // Esta funcao cuida de consultar os cercados cadastrados na DLL.
     public List<Cercado> ListarCercados()
     {
-        var ret = Jogo.ListarCercados();
-        var dt = DllHelper.AsDataTable(ret);
+        var respostaDll = Jogo.ListarCercados();
+        var tabela = DllHelper.AsDataTable(respostaDll);
         var lista = new List<Cercado>();
-        if (dt == null) return lista;
+        if (tabela == null) return lista;
 
-        // Coleta primeiro todos os códigos retornados — para depois detectar lado
-        var bruto = new List<(string cod, string nome, string desc)>();
-        foreach (DataRow r in dt.Rows)
+        // Coleta primeiro todos os codigos retornados para depois detectar lado
+        var cercadosRetornados = new List<(string codigo, string nome, string descricao)>();
+        foreach (DataRow linhaTabela in tabela.Rows)
         {
-            bruto.Add((
-                DllHelper.StrAt(r, 0),
-                DllHelper.StrAt(r, 1),
-                DllHelper.StrAt(r, 2)));
+            cercadosRetornados.Add((
+                DllHelper.TextoNaPosicao(linhaTabela, 0),
+                DllHelper.TextoNaPosicao(linhaTabela, 1),
+                DllHelper.TextoNaPosicao(linhaTabela, 2)));
         }
 
         // Detecta o lado
-        var lado = DetectarLado(bruto.Select(b => b.cod));
-        var mapa = Cercado.CercadosPorLado(lado);
+        var mapa = Cercado.CercadosPorLado(LadoMapa.Verao);
 
-        foreach (var (cod, nome, desc) in bruto)
+        foreach (var (codigo, nome, descricao) in cercadosRetornados)
         {
-            var c = new Cercado
+            var cercado = new Cercado
             {
-                Codigo = cod,
+                Codigo = codigo,
                 Nome = nome,
-                Descricao = desc
+                Descricao = descricao
             };
-            if (mapa.TryGetValue(cod, out var info))
+            if (mapa.TryGetValue(codigo, out var info))
             {
-                c.Lado = info.Lado;
-                c.Lateral = info.Lateral;
-                c.Capacidade = info.Capacidade;
-                c.Tipo = info.Tipo;
-                if (string.IsNullOrEmpty(c.Nome)) c.Nome = info.Nome;
+                cercado.Lado = info.Lado;
+                cercado.Lateral = info.Lateral;
+                cercado.Capacidade = info.Capacidade;
+                cercado.Tipo = info.Tipo;
+                if (string.IsNullOrEmpty(cercado.Nome)) cercado.Nome = info.Nome;
             }
             else
             {
-                // Cercado desconhecido — fallback razoável
-                c.Tipo = TipoCercado.Linear;
-                c.Capacidade = 6;
+                // Cercado desconhecido a fallback razoavel
+                cercado.Tipo = TipoCercado.Linear;
+                cercado.Capacidade = 6;
             }
-            lista.Add(c);
+            lista.Add(cercado);
         }
         return lista;
     }
 
     /// <summary>
-    /// Detecta o lado do tabuleiro pelos códigos de cercado retornados.
-    /// Se contém códigos típicos de inverno (PI, FB, VG, QU, PE/PD), é inverno;
-    /// caso contrário, verão.
-    /// </summary>
-    public static LadoMapa DetectarLado(IEnumerable<string> codigos)
-    {
-        var set = new HashSet<string>(codigos, StringComparer.OrdinalIgnoreCase);
-        // Códigos exclusivos do inverno
-        string[] marcasInverno = { "PI", "FB", "VG", "QU", "PE", "PD" };
-        if (marcasInverno.Any(m => set.Contains(m))) return LadoMapa.Inverno;
-        return LadoMapa.Verao;
-    }
-
-    /// <summary>
-    /// Retorna a pontuação detalhada de um jogador (etapa por etapa).
+    /// Retorna a pontuacao detalhada de um jogador (etapa por etapa).
     /// </summary>
     public List<(string descricao, int pontos)> ListarPontuacao(int idJogador)
     {
         var lista = new List<(string, int)>();
         try
         {
-            var ret = Jogo.ListarPontuacao(idJogador);
-            var dt = DllHelper.AsDataTable(ret);
-            if (dt == null) return lista;
-            foreach (DataRow r in dt.Rows)
+            var respostaDll = Jogo.ListarPontuacao(idJogador);
+            var tabela = DllHelper.AsDataTable(respostaDll);
+            if (tabela == null) return lista;
+            foreach (DataRow linhaTabela in tabela.Rows)
             {
-                // Esperado: descrição, pontos (acumulado ou parcial)
-                lista.Add((DllHelper.StrAt(r, 0), DllHelper.IntAt(r, 1)));
+                // Esperado: descricao, pontos (acumulado ou parcial)
+                lista.Add((DllHelper.TextoNaPosicao(linhaTabela, 0), DllHelper.InteiroNaPosicao(linhaTabela, 1)));
             }
         }
-        catch { /* método pode não existir em versões antigas */ }
+        catch { /* metodo pode nao existir em versoes antigas */ }
         return lista;
     }
 
+    // A funcao serve para consultar as especies de dinossauro conhecidas pela DLL.
     public List<Dinossauro> ListarDinossauros()
     {
-        // A assinatura aceita um bool — passamos false (formato resumido)
-        var ret = Jogo.ListarDinossauros(false);
-        var dt = DllHelper.AsDataTable(ret);
+        // A assinatura aceita um bool; passamos false (formato resumido)
+        var respostaDll = Jogo.ListarDinossauros(false);
+        var tabela = DllHelper.AsDataTable(respostaDll);
         var lista = new List<Dinossauro>();
-        if (dt == null) return lista;
-        foreach (DataRow r in dt.Rows)
+        if (tabela == null) return lista;
+        foreach (DataRow linhaTabela in tabela.Rows)
         {
-            string cod = DllHelper.StrAt(r, 0);
+            string codigo = DllHelper.TextoNaPosicao(linhaTabela, 0);
             lista.Add(new Dinossauro
             {
-                Codigo = cod,
-                Nome = string.IsNullOrEmpty(DllHelper.StrAt(r, 1))
-                    ? Dinossauro.NomePorCodigo(cod)
-                    : DllHelper.StrAt(r, 1),
-                Cor = Dinossauro.CorPorCodigo(cod)
+                Codigo = codigo,
+                Nome = string.IsNullOrEmpty(DllHelper.TextoNaPosicao(linhaTabela, 1))
+                    ? Dinossauro.NomePorCodigo(codigo)
+                    : DllHelper.TextoNaPosicao(linhaTabela, 1),
+                Cor = Dinossauro.CorPorCodigo(codigo)
             });
         }
         return lista;
     }
 }
+
+

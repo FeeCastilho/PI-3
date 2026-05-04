@@ -1,4 +1,4 @@
-﻿using DraftosaurusClient.Controls;
+using DraftosaurusClient.Controls;
 using DraftosaurusClient.Helpers;
 using DraftosaurusClient.Models;
 using DraftosaurusClient.Services;
@@ -6,8 +6,8 @@ using DraftosaurusClient.Services;
 namespace DraftosaurusClient.Forms;
 
 /// <summary>
-/// Tela principal de jogo. SincronizaÃ§Ã£o via Timer (polling).
-/// Suporta lado VerÃ£o e Inverno (detectado automaticamente).
+/// Tela principal de jogo. Sincronizacao via Timer (polling).
+/// Usa o tabuleiro de verao.
 /// </summary>
 public class FormJogo : Form
 {
@@ -22,7 +22,7 @@ public class FormJogo : Form
     private readonly Label _lblTurno, _lblDado, _lblFaceDesc, _lblStatus, _lblJogadorVez;
     private readonly ListBox _lstJogadores;
     private readonly TextBox _txtHistorico;
-    private readonly Button _btnJogar, _btnVerOutro, _btnHistorico, _btnMudo, _btnPontuacao, _btnAuto;
+    private readonly Button _btnJogar, _btnVerOutro, _btnHistorico, _btnMudo, _btnPontuacao, _btnouto, _btnInstrucoes;
     private readonly System.Windows.Forms.Timer _timer;
     private readonly System.Windows.Forms.Timer _autoTimer;
 
@@ -31,12 +31,13 @@ public class FormJogo : Form
     private bool _jaJogueiNesteTurno = false;
     private List<Jogador> _jogadores = new();
     private int? _jogadorVisualizado = null;
-    private bool _ladoDetectado = false;
+    private bool _instrucoesVisiveis = false;
     private bool _fimDeJogoTratado = false;
     private bool _autoLigado = false;
-    // Para detectar nova jogada visÃ­vel e animar
+    // Para detectar nova jogada visivel e animar
     private int _jogadasNoTurnoConhecidas = 0;
 
+    // Esta funcao executa a etapa 'FormJogo' do programa.
     public FormJogo(DraftService svc, int idPartida, int idJogador, string senha, string nome)
     {
         _svc = svc;
@@ -45,7 +46,7 @@ public class FormJogo : Form
         _senha = senha;
         _nome = nome;
 
-        Text = $"Draftosaurus â€” Partida {idPartida} â€” {nome} (#{idJogador})";
+        Text = $"Draftosaurus - Partida {idPartida} - {nome} (#{idJogador})";
         WindowState = FormWindowState.Maximized;
         StartPosition = FormStartPosition.CenterScreen;
         BackColor = Color.FromArgb(245, 240, 230);
@@ -90,11 +91,11 @@ public class FormJogo : Form
         };
         barra.Controls.Add(_lblJogadorVez);
 
-        // BotÃ£o de mudo + pontuaÃ§Ã£o no canto direito
+        // Botao de mudo + pontuacao no canto direito
         _btnMudo = new Button
         {
-            Text = "ðŸ”Š",
-            Width = 36, Height = 32,
+            Text = "Som",
+            Width = 60, Height = 32,
             Location = new Point(0, 8),
             FlatStyle = FlatStyle.Flat,
             BackColor = Color.FromArgb(80, 70, 60),
@@ -104,13 +105,13 @@ public class FormJogo : Form
         _btnMudo.Click += (_, _) =>
         {
             SomHelper.Silenciado = !SomHelper.Silenciado;
-            _btnMudo.Text = SomHelper.Silenciado ? "ðŸ”‡" : "ðŸ”Š";
+            _btnMudo.Text = SomHelper.Silenciado ? "Mudo" : "Som";
         };
         barra.Controls.Add(_btnMudo);
 
         _btnPontuacao = new Button
         {
-            Text = "ðŸ† PontuaÃ§Ã£o",
+            Text = "Pontuacao",
             Width = 110, Height = 32,
             Location = new Point(0, 8),
             FlatStyle = FlatStyle.Flat,
@@ -121,7 +122,7 @@ public class FormJogo : Form
         _btnPontuacao.Click += (_, _) => AbrirPontuacao();
         barra.Controls.Add(_btnPontuacao);
 
-        _btnAuto = new Button
+        _btnouto = new Button
         {
             Text = "Auto: OFF",
             Width = 90, Height = 32,
@@ -131,8 +132,21 @@ public class FormJogo : Form
             ForeColor = Color.White,
             Anchor = AnchorStyles.Top | AnchorStyles.Right
         };
-        _btnAuto.Click += (_, _) => AlternarAutomatico();
-        barra.Controls.Add(_btnAuto);
+        _btnouto.Click += (_, _) => AlternarAutomatico();
+        barra.Controls.Add(_btnouto);
+
+        _btnInstrucoes = new Button
+        {
+            Text = "Instrucoes",
+            Width = 95, Height = 32,
+            Location = new Point(0, 8),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Color.FromArgb(80, 70, 60),
+            ForeColor = Color.White,
+            Anchor = AnchorStyles.Top | AnchorStyles.Right
+        };
+        _btnInstrucoes.Click += (_, _) => AlternarInstrucoes();
+        barra.Controls.Add(_btnInstrucoes);
 
         _lblStatus = new Label
         {
@@ -146,13 +160,14 @@ public class FormJogo : Form
         };
         barra.Controls.Add(_lblStatus);
 
-        // Posicionamento inicial dos botÃµes da direita
+        // Posicionamento inicial dos botoes da direita
         void ReposicionarBarra()
         {
             _btnMudo.Left = barra.Width - _btnMudo.Width - 12;
             _btnPontuacao.Left = _btnMudo.Left - _btnPontuacao.Width - 8;
-            _btnAuto.Left = _btnPontuacao.Left - _btnAuto.Width - 8;
-            _lblStatus.Width = Math.Max(200, _btnAuto.Left - 380);
+            _btnouto.Left = _btnPontuacao.Left - _btnouto.Width - 8;
+            _btnInstrucoes.Left = _btnouto.Left - _btnInstrucoes.Width - 8;
+            _lblStatus.Width = Math.Max(200, _btnInstrucoes.Left - 380);
         }
         barra.Resize += (_, _) => ReposicionarBarra();
         ReposicionarBarra();
@@ -200,13 +215,13 @@ public class FormJogo : Form
         pnlEsq.Controls.Add(_lstJogadores);
         _lstJogadores.BringToFront();
 
-        _btnVerOutro = new Button { Text = "ðŸ‘ Ver tabuleiro do selecionado", Dock = DockStyle.Top, Height = 32 };
+        _btnVerOutro = new Button { Text = "Ver tabuleiro", Dock = DockStyle.Top, Height = 32 };
         _btnVerOutro.Text = "Ver tabuleiro";
         _btnVerOutro.Click += (_, _) => AlternarVisualizacao();
         pnlEsq.Controls.Add(_btnVerOutro);
         _btnVerOutro.BringToFront();
 
-        _btnHistorico = new Button { Text = "ðŸ“œ Atualizar histÃ³rico", Dock = DockStyle.Top, Height = 32 };
+        _btnHistorico = new Button { Text = "Atualizar historico", Dock = DockStyle.Top, Height = 32 };
         _btnHistorico.Click += (_, _) => CarregarHistorico();
         pnlEsq.Controls.Add(_btnHistorico);
         _btnHistorico.BringToFront();
@@ -249,7 +264,7 @@ public class FormJogo : Form
         };
         var lblMao = new Label
         {
-            Text = "ðŸ¦• SUA MÃƒO â€” clique em uma espÃ©cie e depois em um cercado vÃ¡lido (verde) do tabuleiro:",
+            Text = "SUA MAO - clique em uma especie e depois em um cercado valido (verde) do tabuleiro:",
             Dock = DockStyle.Top, Height = 22,
             ForeColor = Color.White,
             Font = new Font("Segoe UI", 9f, FontStyle.Bold),
@@ -295,34 +310,26 @@ public class FormJogo : Form
         _autoTimer = new System.Windows.Forms.Timer { Interval = 5000 };
         _autoTimer.Tick += (_, _) => FluxoAutomatico();
 
-        Load += (_, _) => { DetectarLado(); AtualizarEstado(); };
+        Load += (_, _) => AtualizarEstado();
         FormClosing += (_, _) => { _timer.Stop(); _autoTimer.Stop(); };
     }
 
-    /// <summary>Descobre verÃ£o ou inverno via ListarCercados().</summary>
-    private void DetectarLado()
+    // Esta funcao cuida de ligar ou desligar as caixas de instrucao no tabuleiro.
+    private void AlternarInstrucoes()
     {
-        if (_ladoDetectado) return;
-        try
-        {
-            var cercs = _svc.ListarCercados();
-            var codigos = cercs.Select(c => c.Codigo);
-            var lado = DraftService.DetectarLado(codigos);
-            _tab.Lado = lado;
-            _ladoDetectado = true;
-            _tab.Invalidate();
-        }
-        catch { /* tenta de novo na prÃ³xima atualizaÃ§Ã£o */ }
+        _instrucoesVisiveis = !_instrucoesVisiveis;
+        _tab.MostrarInstrucoes = _instrucoesVisiveis;
+        _btnInstrucoes.BackColor = _instrucoesVisiveis ? Color.DarkGreen : Color.FromArgb(80, 70, 60);
+        _tab.Invalidate();
     }
 
     // ===========================================================
-    // SINCRONIZAÃ‡ÃƒO
+    // SINCRONIZACAO
     // ===========================================================
 
+    // A funcao serve para fazer a sincronizacao principal da tela com o backend.
     private void AtualizarEstado()
     {
-        if (!_ladoDetectado) DetectarLado();
-
         try
         {
             var estado = _svc.VerificarPartida(_idPartida);
@@ -336,7 +343,7 @@ public class FormJogo : Form
 
             string nomeDoDado = _jogadores.FirstOrDefault(j => j.Id == estado.IdJogadorComDado)?.Nome
                                 ?? $"#{estado.IdJogadorComDado}";
-            _lblJogadorVez.Text = estado.Status == 'E' ? "ðŸ Fim de jogo" : $"Dado com: {nomeDoDado}";
+            _lblJogadorVez.Text = estado.Status == 'E' ? "Fim de jogo" : $"Dado com: {nomeDoDado}";
 
             AtualizarListaJogadores(estado);
 
@@ -352,7 +359,7 @@ public class FormJogo : Form
                 _tab.CercadoSelecionado = null;
                 _mao.LimparSelecao();
 
-                // Som de novo turno (nÃ£o no carregamento inicial)
+                // Som de novo turno (nao no carregamento inicial)
                 if (turnoMudou && estado.Status == 'J')
                     SomHelper.NovoTurno();
             }
@@ -390,8 +397,8 @@ public class FormJogo : Form
             bool minhaVezDeJogar = !_jaJogueiNesteTurno && estado.StatusTurno == 'A';
             _tab.Interativo = minhaVezDeJogar && _jogadorVisualizado == null;
             _lblStatus.Text = minhaVezDeJogar
-                ? "âœ… Sua vez â€” escolha um dinossauro e um cercado."
-                : (_jaJogueiNesteTurno ? "â³ Aguardando outros jogadores..." : "â³ Turno sendo finalizado...");
+                ? "Sua vez - escolha um dinossauro e um cercado."
+                : (_jaJogueiNesteTurno ? "Aguardando outros jogadores..." : "Turno sendo finalizado...");
 
             AtualizarTabuleiroExibido();
             AtualizarMao();
@@ -404,9 +411,9 @@ public class FormJogo : Form
     }
 
     /// <summary>
-    /// Compara as jogadas visÃ­veis do turno atual com o que conhecÃ­amos.
-    /// Se uma nova apareceu (de outro jogador) e ela Ã© no tabuleiro que estamos
-    /// vendo, dispara animaÃ§Ã£o.
+    /// Compara as jogadas visiveis do turno atual com o que conhecamos.
+    /// Se uma nova apareceu (de outro jogador) e ela A no tabuleiro que estamos
+    /// vendo, dispara animacao.
     /// </summary>
     private List<JogadaTurno> BuscarJogadasDoTurnoAtual()
     {
@@ -421,6 +428,7 @@ public class FormJogo : Form
         }
     }
 
+    // A funcao serve para saber se um jogador ja fez sua jogada neste turno.
     private static bool JogadorJaJogou(List<JogadaTurno> jogadas, int idJogador)
     {
         return jogadas.Any(j =>
@@ -429,11 +437,12 @@ public class FormJogo : Form
             !j.CodigoDinossauro.Equals("XX", StringComparison.OrdinalIgnoreCase));
     }
 
+    // Esta funcao faz perceber jogadas novas e animar o dinossauro no tabuleiro.
     private void DetectarJogadaNova(List<JogadaTurno> jogadas)
     {
         try
         {
-            // Filtra jogadas com dados visÃ­veis (nÃ£o XX)
+            // Filtra jogadas com dados visiveis (nao XX)
             var visiveis = jogadas.Where(j =>
                 !string.IsNullOrEmpty(j.CodigoDinossauro) &&
                 j.CodigoDinossauro != "XX").ToList();
@@ -441,27 +450,28 @@ public class FormJogo : Form
             if (visiveis.Count > _jogadasNoTurnoConhecidas)
             {
                 int idAlvo = _jogadorVisualizado ?? _idJogador;
-                // Pega a Ãºltima nova (do jogador que estamos olhando)
+                // Pega a ultima nova (do jogador que estamos olhando)
                 for (int i = _jogadasNoTurnoConhecidas; i < visiveis.Count; i++)
                 {
                     var j = visiveis[i];
                     if (j.IdJogador == idAlvo)
                     {
                         _tab.AnimarColocacao(j.CodigoCercado, j.CodigoDinossauro);
-                        break; // anima sÃ³ uma por ciclo de tick
+                        break; // anima so uma por ciclo de tick
                     }
                 }
                 _jogadasNoTurnoConhecidas = visiveis.Count;
             }
             else if (visiveis.Count < _jogadasNoTurnoConhecidas)
             {
-                // Turno virou â€” reseta contador
+                // Turno virou a reseta contador
                 _jogadasNoTurnoConhecidas = visiveis.Count;
             }
         }
         catch { }
     }
 
+    // Esta funcao cuida de redesenhar a lista lateral de jogadores.
     private void AtualizarListaJogadores(EstadoPartida estado)
     {
         _lstJogadores.BeginUpdate();
@@ -472,11 +482,11 @@ public class FormJogo : Form
         _lstJogadores.Items.Clear();
         foreach (var j in _jogadores)
         {
-            string marca = j.Id == _idJogador ? " (vocÃª)" : "";
-            string dado = j.Id == estado.IdJogadorComDado ? " ðŸŽ²" : "";
-            string vis = (_jogadorVisualizado.HasValue && _jogadorVisualizado.Value == j.Id) ? " ðŸ‘" : "";
+            string marca = j.Id == _idJogador ? " (voce)" : "";
+            string dado = j.Id == estado.IdJogadorComDado ? " [dado]" : "";
+            string vis = (_jogadorVisualizado.HasValue && _jogadorVisualizado.Value == j.Id) ? " [vendo]" : "";
             string pts = estado.Status == 'E' ? $"  [{j.Pontuacao} pts]" : "";
-            _lstJogadores.Items.Add($"#{j.Id} {j.Nome}{marca}{dado}{vis}{pts}");
+            _lstJogadores.Items.Add(new JogadorListItem(j, $"#{j.Id} {j.Nome}{marca}{dado}{vis}{pts}"));
         }
         int? idParaSelecionar = _jogadorVisualizado ?? idSelecionado;
         if (idParaSelecionar.HasValue)
@@ -487,8 +497,10 @@ public class FormJogo : Form
         }
 
         _lstJogadores.EndUpdate();
+        _btnVerOutro.Enabled = _jogadores.Count > 1;
     }
 
+    // A funcao serve para carregar meu tabuleiro ou o tabuleiro de outro jogador.
     private void AtualizarTabuleiroExibido()
     {
         try
@@ -498,10 +510,17 @@ public class FormJogo : Form
                 ? _svc.ExibirTabuleiro(idAlvo, _senha)
                 : _svc.ExibirTabuleiro(idAlvo);
             _tab.AtualizarEstado(tab);
+            if (_jogadorVisualizado.HasValue)
+                _lblStatus.Text = $"Visualizando tabuleiro de {NomeJogador(idAlvo)}.";
         }
-        catch { }
+        catch (Exception ex)
+        {
+            if (_jogadorVisualizado.HasValue)
+                _lblStatus.Text = "Nao foi possivel carregar o tabuleiro selecionado: " + ex.Message;
+        }
     }
 
+    // Esta funcao recarrega os dinossauros disponiveis na mao.
     private void AtualizarMao()
     {
         try
@@ -517,18 +536,19 @@ public class FormJogo : Form
     }
 
     // ===========================================================
-    // INTERAÃ‡ÃƒO DO JOGADOR
+    // INTERACAO DO JOGADOR
     // ===========================================================
 
     // ===========================================================
     // AUTOMACAO TEMPORAL
     // ===========================================================
 
+    // Esta funcao cuida de ligar ou desligar o modo automatico.
     private void AlternarAutomatico()
     {
         _autoLigado = !_autoLigado;
-        _btnAuto.Text = _autoLigado ? "Auto: ON" : "Auto: OFF";
-        _btnAuto.BackColor = _autoLigado ? Color.DarkGreen : Color.FromArgb(80, 70, 60);
+        _btnouto.Text = _autoLigado ? "Auto: ON" : "Auto: OFF";
+        _btnouto.BackColor = _autoLigado ? Color.DarkGreen : Color.FromArgb(80, 70, 60);
 
         if (_autoLigado)
         {
@@ -575,6 +595,7 @@ public class FormJogo : Form
         }
     }
 
+    // A funcao serve para decidir se o robo pode tentar jogar agora.
     private bool PodeAutomacaoJogar(EstadoPartida estado)
     {
         if (JogadorJaJogou(BuscarJogadasDoTurnoAtual(), _idJogador))
@@ -588,6 +609,7 @@ public class FormJogo : Form
             && !_jaJogueiNesteTurno;
     }
 
+    // Esta funcao faz testar jogadas candidatas ate a DLL aceitar uma.
     private bool TentarJogadaAutomatica(
         Dictionary<string, int> mao,
         Dictionary<string, List<string>> tabuleiro,
@@ -620,6 +642,7 @@ public class FormJogo : Form
         return false;
     }
 
+    // Esta funcao cuida de montar uma lista ordenada de jogadas possiveis.
     private List<JogadaAutomatica> MontarJogadasCandidatas(
         Dictionary<string, int> mao,
         Dictionary<string, List<string>> tabuleiro,
@@ -681,6 +704,7 @@ public class FormJogo : Form
         };
     }
 
+    // A funcao serve para avaliar se uma jogada combina com a Floresta da Igualdade.
     private static int? PontuarFlorestaIgualdade(string dino, List<string> dinosNoCercado)
     {
         if (dinosNoCercado.Count == 0)
@@ -691,6 +715,7 @@ public class FormJogo : Form
             : null;
     }
 
+    // Esta funcao faz avaliar se uma jogada combina com a Campina da Diferenca.
     private static int? PontuarCampinaDiferenca(string dino, List<string> dinosNoCercado)
     {
         return dinosNoCercado.Contains(dino)
@@ -698,6 +723,7 @@ public class FormJogo : Form
             : 45 + dinosNoCercado.Count * 10;
     }
 
+    // Esta funcao cuida de avaliar se uma jogada e boa para a Ilha Solitaria.
     private static int PontuarIlhaSolitaria(
         string dino,
         Dictionary<string, List<string>> tabuleiro)
@@ -706,6 +732,7 @@ public class FormJogo : Form
         return especieJaEstaNoZoo ? 15 : 45;
     }
 
+    // A funcao serve para listar cercados permitidos pelo dado para o automatico.
     private IEnumerable<string> CercadosPossiveisParaAutomacao(
         EstadoPartida estado,
         Dictionary<string, List<string>> tabuleiro)
@@ -715,6 +742,7 @@ public class FormJogo : Form
                 yield return cod;
     }
 
+    // Esta funcao faz aplicar localmente a restricao da face do dado.
     private bool PodeUsarCercadoPeloDado(
         string cod,
         EstadoPartida estado,
@@ -739,10 +767,12 @@ public class FormJogo : Form
         };
     }
 
+    // Esta funcao cuida de iniciar 'JogadaAutomatica' do programa.
     private record JogadaAutomatica(string Dino, string Cercado, int Pontos);
 
     private string? _cercadoSelecionado;
 
+    // A funcao serve para tratar o caso em que o usuario clica em um cercado do tabuleiro.
     private void Tabuleiro_CercadoClicado(object? sender, string cercadoCod)
     {
         _cercadoSelecionado = cercadoCod;
@@ -754,6 +784,7 @@ public class FormJogo : Form
             Jogar();
     }
 
+    // A funcao serve para habilitar, desabilitar e renomear o botao de jogar.
     private void AtualizarBotaoJogar()
     {
         bool podeJogar = !_jaJogueiNesteTurno
@@ -766,18 +797,19 @@ public class FormJogo : Form
         {
             string nomeDino = Dinossauro.NomePorCodigo(_mao.CodigoSelecionado!);
             string nomeCerc = NomeCercado(_cercadoSelecionado!);
-            _btnJogar.Text = $"â–¶ Colocar {nomeDino} em {nomeCerc}";
+            _btnJogar.Text = $"Colocar {nomeDino} em {nomeCerc}";
             _btnJogar.BackColor = Color.LimeGreen;
         }
         else
         {
             _btnJogar.BackColor = Color.Gray;
-            if (_jaJogueiNesteTurno) _btnJogar.Text = "Aguardando prÃ³ximo turno...";
-            else if (_mao.CodigoSelecionado == null) _btnJogar.Text = "Escolha um dinossauro da sua mÃ£o";
+            if (_jaJogueiNesteTurno) _btnJogar.Text = "Aguardando proximo turno...";
+            else if (_mao.CodigoSelecionado == null) _btnJogar.Text = "Escolha um dinossauro da sua mao";
             else if (_cercadoSelecionado == null) _btnJogar.Text = "Escolha um cercado no tabuleiro";
         }
     }
 
+    // Esta funcao faz trocar codigo de cercado pelo nome exibido ao usuario.
     private string NomeCercado(string cod)
     {
         if (cod == "RI") return "Rio";
@@ -785,6 +817,7 @@ public class FormJogo : Form
         return mapa.TryGetValue(cod, out var info) ? info.Nome : cod;
     }
 
+    // Esta funcao cuida de enviar uma jogada para a DLL validar e gravar no backend.
     private void Jogar()
     {
         if (_mao.CodigoSelecionado == null || _cercadoSelecionado == null) return;
@@ -804,7 +837,7 @@ public class FormJogo : Form
             AtualizarEstado();
             if (prox == 0)
             {
-                MessageBox.Show("Partida encerrada!\nA tela de pontuacao sera exibida.",
+                MessageBox.Show("Partida encerrada!\no tela de pontuacao sera exibida.",
                     "Fim de jogo", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
@@ -834,18 +867,20 @@ public class FormJogo : Form
         }
     }
 
+    // A funcao serve para identificar o erro de jogador que ja jogou no turno.
     private static bool JogadaJaRealizadaErro(Exception ex)
     {
         string msg = ex.Message.ToLowerInvariant();
         return msg.Contains("ja realizou")
-            || msg.Contains("já realizou")
+            || msg.Contains("ja realizou")
             || msg.Contains("jogada neste turno");
     }
 
     // ===========================================================
-    // VISUALIZAÃ‡ÃƒO E PONTUAÃ‡ÃƒO
+    // VISUALIZACAO E PONTUACAO
     // ===========================================================
 
+    // Esta funcao faz alternar entre meu tabuleiro e o tabuleiro de outro jogador.
     private void AlternarVisualizacao()
     {
         if (_jogadorVisualizado.HasValue)
@@ -864,7 +899,14 @@ public class FormJogo : Form
             return;
         }
 
-        var alvo = _jogadores[_lstJogadores.SelectedIndex];
+        var alvo = JogadorSelecionado();
+        if (alvo == null)
+        {
+            MessageBox.Show("Selecione um jogador valido na lista.", "Tabuleiro",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
         if (alvo.Id == _idJogador)
         {
             _jogadorVisualizado = null;
@@ -880,6 +922,28 @@ public class FormJogo : Form
         AtualizarEstado();
     }
 
+    // Esta funcao cuida de pegar da lista o jogador selecionado.
+    private Jogador? JogadorSelecionado()
+    {
+        return _lstJogadores.SelectedItem is JogadorListItem item
+            ? item.Jogador
+            : null;
+    }
+
+    // A funcao serve para achar o nome de um jogador pelo id.
+    private string NomeJogador(int idJogador)
+    {
+        return _jogadores.FirstOrDefault(j => j.Id == idJogador)?.Nome ?? $"#{idJogador}";
+    }
+
+    // Esta funcao executa a etapa 'JogadorListItem' do programa.
+    private sealed record JogadorListItem(Jogador Jogador, string Texto)
+    {
+        // Esta funcao cuida de iniciar 'ToString' do programa.
+        public override string ToString() => Texto;
+    }
+
+    // A funcao serve para atualizar o campo de historico da partida.
     private void CarregarHistorico()
     {
         try
@@ -894,6 +958,7 @@ public class FormJogo : Form
         }
     }
 
+    // Esta funcao faz abrir a janela de pontuacao.
     private void AbrirPontuacao()
     {
         if (_jogadores.Count == 0) return;
@@ -901,17 +966,19 @@ public class FormJogo : Form
         dlg.ShowDialog(this);
     }
 
+    // Esta funcao cuida de montar o resumo final dos jogadores por pontuacao.
     private string MontarRanking()
     {
         if (_jogadores.Count == 0) return "Fim de jogo";
         var ord = _jogadores.OrderByDescending(j => j.Pontuacao).ToList();
-        var sb = new System.Text.StringBuilder("ðŸ† ");
+        var sb = new System.Text.StringBuilder("Ranking: ");
         for (int i = 0; i < ord.Count; i++)
         {
-            sb.Append($"{i + 1}Âº {ord[i].Nome}={ord[i].Pontuacao}");
+            sb.Append($"{i + 1}o {ord[i].Nome}={ord[i].Pontuacao}");
             if (i < ord.Count - 1) sb.Append(" | ");
         }
         return sb.ToString();
     }
 }
+
 

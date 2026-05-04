@@ -4,7 +4,7 @@ using DraftosaurusClient.Models;
 namespace DraftosaurusClient.Controls;
 
 /// <summary>
-/// Mão do jogador: linha de cards de dinossauros clicáveis com silhueta
+/// Mao do jogador: linha de cards de dinossauros clicaveis com silhueta
 /// vetorial e contador de quantidade.
 /// </summary>
 public class MaoControl : FlowLayoutPanel
@@ -22,6 +22,7 @@ public class MaoControl : FlowLayoutPanel
         }
     }
 
+    // A funcao serve para iniciar 'MaoControl' do programa.
     public MaoControl()
     {
         AutoScroll = true;
@@ -33,9 +34,10 @@ public class MaoControl : FlowLayoutPanel
 
     private Dictionary<string, int> _maoAtual = new();
 
+    // Esta funcao recarrega os dinossauros disponiveis na mao.
     public void AtualizarMao(Dictionary<string, int> mao)
     {
-        // Otimização: só rebuilda se a mão realmente mudou
+        // Otimizacao: so rebuilda se a mao realmente mudou
         if (MaosIguais(_maoAtual, mao)) return;
         _maoAtual = new Dictionary<string, int>(mao);
 
@@ -47,7 +49,7 @@ public class MaoControl : FlowLayoutPanel
             c.Dispose();
         }
 
-        // Um card por espécie (não um por dino) — com badge de quantidade
+        // Um card por especie (nao um por dino) - com badge de quantidade
         foreach (var kv in mao.Where(k => k.Value > 0).OrderBy(k => k.Key))
         {
             var card = new DinoCard(kv.Key, kv.Value)
@@ -66,6 +68,7 @@ public class MaoControl : FlowLayoutPanel
         ResumeLayout();
     }
 
+    // Esta funcao cuida de iniciar 'MaosIguais' do programa.
     private static bool MaosIguais(Dictionary<string, int> a, Dictionary<string, int> b)
     {
         if (a.Count != b.Count) return false;
@@ -74,6 +77,7 @@ public class MaoControl : FlowLayoutPanel
         return true;
     }
 
+    // A funcao serve para iniciar 'Item_Click' do programa.
     private void Item_Click(object? sender, EventArgs e)
     {
         if (sender is not DinoCard card) return;
@@ -81,6 +85,7 @@ public class MaoControl : FlowLayoutPanel
         AtualizarSelecaoVisual();
     }
 
+    // Esta funcao executa a etapa 'OnControlAdded' do programa.
     protected override void OnControlAdded(ControlEventArgs e)
     {
         base.OnControlAdded(e);
@@ -88,6 +93,7 @@ public class MaoControl : FlowLayoutPanel
             card.MouseDown += DinoCard_MouseDown;
     }
 
+    // Esta funcao cuida de iniciar 'OnControlRemoved' do programa.
     protected override void OnControlRemoved(ControlEventArgs e)
     {
         if (e.Control is DinoCard card)
@@ -95,6 +101,7 @@ public class MaoControl : FlowLayoutPanel
         base.OnControlRemoved(e);
     }
 
+    // A funcao serve para iniciar 'DinoCard_MouseDown' do programa.
     private void DinoCard_MouseDown(object? sender, MouseEventArgs e)
     {
         if (e.Button != MouseButtons.Left || sender is not DinoCard card) return;
@@ -104,6 +111,7 @@ public class MaoControl : FlowLayoutPanel
         card.DoDragDrop(card.Codigo, DragDropEffects.Copy);
     }
 
+    // Esta funcao executa a etapa 'AtualizarSelecaoVisual' do programa.
     private void AtualizarSelecaoVisual()
     {
         foreach (Control c in Controls)
@@ -111,6 +119,7 @@ public class MaoControl : FlowLayoutPanel
                 dc.Selecionado = (dc.Codigo == _selecionado);
     }
 
+    // Esta funcao cuida de iniciar 'LimparSelecao' do programa.
     public void LimparSelecao()
     {
         CodigoSelecionado = null;
@@ -131,6 +140,7 @@ internal class DinoCard : Control
         set { if (_selecionado != value) { _selecionado = value; Invalidate(); } }
     }
 
+    // A funcao serve para iniciar 'DinoCard' do programa.
     public DinoCard(string codigo, int quantidade)
     {
         Codigo = codigo;
@@ -145,6 +155,7 @@ internal class DinoCard : Control
         tt.SetToolTip(this, $"{Dinossauro.NomePorCodigo(codigo)} (x{quantidade})");
     }
 
+    // Esta funcao desenha o tabuleiro, dinossauros e instrucoes.
     protected override void OnPaint(PaintEventArgs e)
     {
         base.OnPaint(e);
@@ -175,7 +186,7 @@ internal class DinoCard : Control
         using var fonte = new Font("Segoe UI", 8f, FontStyle.Bold);
         using var brushNome = new SolidBrush(Color.FromArgb(40, 30, 20));
         string nome = Dinossauro.NomePorCodigo(Codigo);
-        if (nome.Length > 12) nome = nome.Substring(0, 11) + "…";
+        if (nome.Length > 12) nome = nome.Substring(0, 11) + "a";
         var sz = g.MeasureString(nome, fonte);
         g.DrawString(nome, fonte, brushNome, (Width - sz.Width) / 2, Height - 22);
 
@@ -197,3 +208,4 @@ internal class DinoCard : Control
         }
     }
 }
+

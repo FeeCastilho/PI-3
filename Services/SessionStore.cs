@@ -18,6 +18,7 @@ public static class SessionStore
 
     private static readonly string Arquivo = Path.Combine(Pasta, "sessoes.json");
 
+    // Esta funcao executa a etapa 'Buscar' do programa.
     public static JogadorSessao? Buscar(int idPartida, string nomeJogador)
     {
         return Carregar().FirstOrDefault(s =>
@@ -25,6 +26,7 @@ public static class SessionStore
             string.Equals(s.NomeJogador, nomeJogador, StringComparison.OrdinalIgnoreCase));
     }
 
+    // Esta funcao cuida de iniciar 'Salvar' do programa.
     public static void Salvar(JogadorSessao sessao)
     {
         var sessoes = Carregar();
@@ -39,6 +41,7 @@ public static class SessionStore
         File.WriteAllText(Arquivo, json);
     }
 
+    // A funcao serve para iniciar 'Remover' do programa.
     public static void Remover(int idPartida, string nomeJogador)
     {
         var sessoes = Carregar();
@@ -51,6 +54,7 @@ public static class SessionStore
         File.WriteAllText(Arquivo, json);
     }
 
+    // Esta funcao executa a etapa 'Carregar' do programa.
     private static List<JogadorSessao> Carregar()
     {
         try
@@ -65,3 +69,4 @@ public static class SessionStore
         }
     }
 }
+

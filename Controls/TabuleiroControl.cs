@@ -5,18 +5,18 @@ using DraftosaurusClient.Models;
 namespace DraftosaurusClient.Controls;
 
 /// <summary>
-/// Controle que desenha o tabuleiro do jogador. Suporta lados Verão e Inverno.
+/// Controle que desenha o tabuleiro de verao do jogador.
 ///
-/// Verão (3 linhas x 2 colunas + Rio vertical):
-///   FI  | RS         FB  | VG       (inverno)
-///   MT  | CD         PE  | PI
-///   PA  | IS         PD  | QU
+/// Verao (3 linhas x 2 colunas + Rio vertical):
+///   FI | RS
+///   MT | CD
+///   PA | IS
 ///
 /// Eventos:
-///   - CercadoClicado: dispara quando o usuário clica em um cercado.
+///   - CercadoClicado: dispara quando o usuario clica em um cercado.
 ///
-/// Animações:
-///   - AnimarColocacao(cercado, dino): faz uma "queda" do dino até o cercado.
+/// Animacoes:
+///   - AnimarColocacao(cercado, dino): faz uma "queda" do dino ate o cercado.
 /// </summary>
 public class TabuleiroControl : Control
 {
@@ -27,22 +27,24 @@ public class TabuleiroControl : Control
     private Rectangle _areaTabuleiro = Rectangle.Empty;
     private string? _cercadoHover;
 
-    /// <summary>Lado atual do tabuleiro (Verão ou Inverno).</summary>
+    /// <summary>Este projeto usa apenas o lado verao.</summary>
     public LadoMapa Lado { get; set; } = LadoMapa.Verao;
 
     public bool Interativo { get; set; } = false;
     public string? FaceDadoAtual { get; set; }
     public bool IgnoraDado { get; set; } = false;
     public string? CercadoSelecionado { get; set; }
+    public bool MostrarInstrucoes { get; set; } = false;
 
     public event EventHandler<string>? CercadoClicado;
 
-    // Animação
+    // Animacao
     private System.Windows.Forms.Timer? _animTimer;
     private string? _animCercado;
     private string? _animDino;
     private float _animProgresso; // 0..1
 
+    // Esta funcao cuida de iniciar 'TabuleiroControl' do programa.
     public TabuleiroControl()
     {
         DoubleBuffered = true;
@@ -54,6 +56,7 @@ public class TabuleiroControl : Control
         _imagemTabuleiro = CarregarImagemTabuleiro();
     }
 
+    // A funcao serve para carregar a imagem real do tabuleiro de verao.
     private static Image? CarregarImagemTabuleiro()
     {
         var caminho = Path.Combine(AppContext.BaseDirectory, "assets", "tabuleiro-verao.jpg");
@@ -64,6 +67,7 @@ public class TabuleiroControl : Control
         return new Bitmap(img);
     }
 
+    // A funcao serve para fazer a sincronizacao principal da tela com o backend.
     public void AtualizarEstado(Dictionary<string, List<string>> estado)
     {
         var novo = estado ?? new();
@@ -72,6 +76,7 @@ public class TabuleiroControl : Control
         Invalidate();
     }
 
+    // Esta funcao evita redesenhar o tabuleiro se nada mudou.
     private static bool EstadosIguais(
         Dictionary<string, List<string>> a,
         Dictionary<string, List<string>> b)
@@ -88,8 +93,8 @@ public class TabuleiroControl : Control
     }
 
     /// <summary>
-    /// Anima a colocação de um dinossauro em um cercado. O dino "cai"
-    /// do topo da tela até a posição final no cercado.
+    /// Anima a colocacao de um dinossauro em um cercado. O dino "cai"
+    /// do topo da tela ate a posicao final no cercado.
     /// </summary>
     public void AnimarColocacao(string codCercado, string codDino)
     {
@@ -118,6 +123,7 @@ public class TabuleiroControl : Control
         _animTimer.Start();
     }
 
+    // Esta funcao cuida de recalcular areas clicaveis quando o tamanho muda.
     protected override void OnResize(EventArgs e)
     {
         base.OnResize(e);
@@ -125,6 +131,7 @@ public class TabuleiroControl : Control
         Invalidate();
     }
 
+    // A funcao serve para definir onde ficam os cercados na tela.
     private void CalcularAreas()
     {
         foreach (var forma in _formasCercados.Values)
@@ -134,7 +141,7 @@ public class TabuleiroControl : Control
         _formasCercados.Clear();
         _areaTabuleiro = CalcularRetanguloTabuleiro();
 
-        if (_imagemTabuleiro != null && Lado == LadoMapa.Verao)
+        if (_imagemTabuleiro != null)
         {
             CalcularAreasImagemVerao();
             return;
@@ -158,34 +165,18 @@ public class TabuleiroControl : Control
         int yLinha2 = yLinha1 + alturaCercado + margem;
         int yLinha3 = yLinha2 + alturaCercado + margem;
 
-        if (Lado == LadoMapa.Verao)
-        {
-            // Coluna esquerda: FI, MT, PA
-            _areasCercados["FI"] = new Rectangle(xEsq, yLinha1, larguraColuna, alturaCercado);
-            _areasCercados["MT"] = new Rectangle(xEsq, yLinha2, larguraColuna, alturaCercado);
-            _areasCercados["PA"] = new Rectangle(xEsq, yLinha3, larguraColuna, alturaCercado);
-            // Coluna direita: RS, CD, IS
-            _areasCercados["RS"] = new Rectangle(xDir, yLinha1, larguraColuna, alturaCercado);
-            _areasCercados["CD"] = new Rectangle(xDir, yLinha2, larguraColuna, alturaCercado);
-            _areasCercados["IS"] = new Rectangle(xDir, yLinha3, larguraColuna, alturaCercado);
-        }
-        else
-        {
-            // Inverno — layout análogo
-            // Coluna esquerda: FB, PE, PD
-            _areasCercados["FB"] = new Rectangle(xEsq, yLinha1, larguraColuna, alturaCercado);
-            _areasCercados["PE"] = new Rectangle(xEsq, yLinha2, larguraColuna, alturaCercado);
-            _areasCercados["PD"] = new Rectangle(xEsq, yLinha3, larguraColuna, alturaCercado);
-            // Coluna direita: VG, PI, QU
-            _areasCercados["VG"] = new Rectangle(xDir, yLinha1, larguraColuna, alturaCercado);
-            _areasCercados["PI"] = new Rectangle(xDir, yLinha2, larguraColuna, alturaCercado);
-            _areasCercados["QU"] = new Rectangle(xDir, yLinha3, larguraColuna, alturaCercado);
-        }
+        _areasCercados["FI"] = new Rectangle(xEsq, yLinha1, larguraColuna, alturaCercado);
+        _areasCercados["MT"] = new Rectangle(xEsq, yLinha2, larguraColuna, alturaCercado);
+        _areasCercados["PA"] = new Rectangle(xEsq, yLinha3, larguraColuna, alturaCercado);
+        _areasCercados["RS"] = new Rectangle(xDir, yLinha1, larguraColuna, alturaCercado);
+        _areasCercados["CD"] = new Rectangle(xDir, yLinha2, larguraColuna, alturaCercado);
+        _areasCercados["IS"] = new Rectangle(xDir, yLinha3, larguraColuna, alturaCercado);
 
         // Rio vertical (presente nos dois lados)
         _areasCercados["RI"] = new Rectangle(xRio, yLinha1, larguraRio, alturaCercado * 3 + margem * 2);
     }
 
+    // Esta funcao faz alinhar as areas clicaveis com a imagem do tabuleiro.
     private void CalcularAreasImagemVerao()
     {
         // Areas em percentual do JPG assets/tabuleiro-verao.jpg.
@@ -202,12 +193,14 @@ public class TabuleiroControl : Control
         DefinirArea("RI", rioBounds, CriarFormaRioVerao());
     }
 
+    // Esta funcao cuida de registrar retangulo e formato clicavel de um cercado.
     private void DefinirArea(string codigo, Rectangle area, GraphicsPath? forma = null)
     {
         _areasCercados[codigo] = area;
         _formasCercados[codigo] = forma ?? CriarFormaRetangular(area);
     }
 
+    // A funcao serve para criar uma area clicavel retangular.
     private static GraphicsPath CriarFormaRetangular(Rectangle area)
     {
         var path = new GraphicsPath();
@@ -215,6 +208,7 @@ public class TabuleiroControl : Control
         return path;
     }
 
+    // Esta funcao faz criar uma area clicavel parecida com o formato do rio.
     private GraphicsPath CriarFormaRioVerao()
     {
         // Poligono aproximado do rio na imagem real. E melhor para clique/hover
@@ -234,10 +228,12 @@ public class TabuleiroControl : Control
         return path;
     }
 
+    // Esta funcao cuida de converter porcentagem da imagem em coordenada da tela.
     private Point Pct(float x, float y) => new(
         _areaTabuleiro.Left + (int)(_areaTabuleiro.Width * x),
         _areaTabuleiro.Top + (int)(_areaTabuleiro.Height * y));
 
+    // A funcao serve para criar retangulos usando porcentagem da imagem.
     private Rectangle AreaPct(float x, float y, float w, float h)
     {
         return new Rectangle(
@@ -247,6 +243,7 @@ public class TabuleiroControl : Control
             Math.Max(1, (int)(_areaTabuleiro.Height * h)));
     }
 
+    // Esta funcao faz definir o espaco total onde o tabuleiro e desenhado.
     private Rectangle CalcularRetanguloTabuleiro()
     {
         if (ClientSize.Width <= 0 || ClientSize.Height <= 0)
@@ -260,6 +257,7 @@ public class TabuleiroControl : Control
             Math.Max(1, ClientSize.Height - padding * 2));
     }
 
+    // Esta funcao cuida de desenhar o tabuleiro, dinossauros e instrucoes.
     protected override void OnPaint(PaintEventArgs e)
     {
         base.OnPaint(e);
@@ -272,15 +270,13 @@ public class TabuleiroControl : Control
         using (var fora = new SolidBrush(Color.FromArgb(232, 226, 214)))
             g.FillRectangle(fora, ClientRectangle);
 
-        bool usaImagem = _imagemTabuleiro != null && Lado == LadoMapa.Verao;
+        bool usaImagem = _imagemTabuleiro != null;
 
         if (usaImagem)
             g.DrawImage(_imagemTabuleiro!, _areaTabuleiro);
 
         // Fundo do tabuleiro
-        Color fundoCor = Lado == LadoMapa.Verao
-            ? Color.FromArgb(180, 220, 180)
-            : Color.FromArgb(195, 215, 230);
+        Color fundoCor = Color.FromArgb(180, 220, 180);
         if (!usaImagem)
         {
             using var fundo = new SolidBrush(fundoCor);
@@ -290,7 +286,7 @@ public class TabuleiroControl : Control
         if (!usaImagem)
             DesenharOrientacao(g);
 
-        // Cercados — desenha o Rio primeiro (atrás)
+        // Cercados a desenha o Rio primeiro (atras)
         if (_areasCercados.TryGetValue("RI", out var areaRio))
             DesenharCercado(g, "RI", areaRio);
 
@@ -300,35 +296,40 @@ public class TabuleiroControl : Control
             DesenharCercado(g, kv.Key, kv.Value);
         }
 
-        // Animação de colocação por cima de tudo
+        // Animacao de colocacao por cima de tudo
         if (_animCercado != null && _animDino != null && _areasCercados.TryGetValue(_animCercado, out var aDest))
         {
             DesenharAnimacao(g, _animDino, aDest);
         }
+
+        if (MostrarInstrucoes)
+            DesenharInstrucoes(g);
     }
 
+    // A funcao serve para desenhar textos de orientacao quando nao ha imagem.
     private void DesenharOrientacao(Graphics g)
     {
         using var fontePeq = new Font("Segoe UI", 7f, FontStyle.Bold);
         using var brushTxt = new SolidBrush(Color.FromArgb(80, 50, 20));
-        g.DrawString("◀ ALIMENTAÇÃO", fontePeq, brushTxt, 4, 1);
-        var medida = g.MeasureString("BANHEIROS ▶", fontePeq);
-        g.DrawString("BANHEIROS ▶", fontePeq, brushTxt, ClientSize.Width - medida.Width - 4, 1);
+        g.DrawString("< ALIMENTACAO", fontePeq, brushTxt, 4, 1);
+        var medida = g.MeasureString("BANHEIROS >", fontePeq);
+        g.DrawString("BANHEIROS >", fontePeq, brushTxt, ClientSize.Width - medida.Width - 4, 1);
 
         // Etiqueta do lado
-        string etiqueta = Lado == LadoMapa.Verao ? "LADO VERÃO" : "LADO INVERNO";
+        string etiqueta = "LADO VERAO";
         using var fonteLado = new Font("Segoe UI", 7.5f, FontStyle.Bold);
         var sz = g.MeasureString(etiqueta, fonteLado);
         g.DrawString(etiqueta, fonteLado, brushTxt, (ClientSize.Width - sz.Width) / 2, 1);
     }
 
+    // Esta funcao desenha cada cercado e sua borda de validade.
     private void DesenharCercado(Graphics g, string cod, Rectangle area)
     {
         bool ehRio = cod == "RI";
         bool valido = CercadoValidoParaDado(cod);
         bool hover = _cercadoHover == cod && Interativo && valido;
         bool selecionado = CercadoSelecionado == cod;
-        bool usarArteReal = _imagemTabuleiro != null && Lado == LadoMapa.Verao;
+        bool usarArteReal = _imagemTabuleiro != null;
 
         var info = ObterInfo(cod);
 
@@ -337,13 +338,9 @@ public class TabuleiroControl : Control
         if (ehRio)
             fundo = Color.FromArgb(120, 180, 220);
         else if (info?.Lado == LadoTabuleiro.Floresta)
-            fundo = Lado == LadoMapa.Verao
-                ? Color.FromArgb(220, 240, 200)
-                : Color.FromArgb(220, 230, 240);
+            fundo = Color.FromArgb(220, 240, 200);
         else
-            fundo = Lado == LadoMapa.Verao
-                ? Color.FromArgb(245, 220, 160)
-                : Color.FromArgb(225, 220, 200);
+            fundo = Color.FromArgb(245, 220, 160);
 
         if (hover) fundo = ControlPaint.Light(fundo, 0.3f);
 
@@ -374,7 +371,7 @@ public class TabuleiroControl : Control
                 g.DrawRoundedRect(pen, area, 8);
         }
 
-        // Título
+        // Titulo
         if (!ehRio && !usarArteReal)
         {
             string nome = info?.Nome ?? cod;
@@ -412,18 +409,20 @@ public class TabuleiroControl : Control
         DesenharDinossauros(g, cod, area, info);
     }
 
+    // Esta funcao cuida de pegar nome, capacidade e lado de um cercado.
     private CercadoInfo? ObterInfo(string cod)
     {
         var mapa = Cercado.CercadosPorLado(Lado);
         return mapa.TryGetValue(cod, out var i) ? i : null;
     }
 
+    // A funcao serve para desenhar os dinossauros dentro do cercado correto.
     private void DesenharDinossauros(Graphics g, string cod, Rectangle area, CercadoInfo? info)
     {
         if (!_estado.TryGetValue(cod, out var dinos) || dinos.Count == 0) return;
 
-        // Durante animação, esconde o ÚLTIMO dino se ele bate com o que está
-        // sendo animado (caso contrário a animação fica em cima do dino estático).
+        // Durante animacao, esconde o ULTIMO dino se ele bate com o que esta
+        // sendo animado (caso contrario a animacao fica em cima do dino estatico).
         var lista = dinos;
         if (_animCercado == cod && _animProgresso < 1f && dinos.Count > 0
             && dinos[^1] == _animDino)
@@ -440,14 +439,13 @@ public class TabuleiroControl : Control
         var tipo = info?.Tipo ?? TipoCercado.Linear;
         switch (tipo)
         {
-            case TipoCercado.Piramide: DesenharPiramide(g, lista, area); break;
             case TipoCercado.Unico:    DesenharUnico(g, lista, area); break;
-            case TipoCercado.Alternada:
             case TipoCercado.Linear:
             default:                   DesenharLinear(g, lista, area, info?.Capacidade ?? 6); break;
         }
     }
 
+    // Esta funcao desenha dinossauros colocados no rio.
     private static void DesenharNoRio(Graphics g, List<string> dinos, Rectangle area)
     {
         int diametro = Math.Min(area.Width - 6, 22);
@@ -462,6 +460,7 @@ public class TabuleiroControl : Control
         }
     }
 
+    // Esta funcao cuida de desenhar dinossauros em cercados de varias posicoes.
     private static void DesenharLinear(Graphics g, List<string> dinos, Rectangle area, int capacidade)
     {
         int yBase = area.Y + 28;
@@ -485,6 +484,7 @@ public class TabuleiroControl : Control
         }
     }
 
+    // A funcao serve para desenhar cercados que aceitam apenas um dinossauro.
     private static void DesenharUnico(Graphics g, List<string> dinos, Rectangle area)
     {
         if (dinos.Count == 0) return;
@@ -496,53 +496,63 @@ public class TabuleiroControl : Control
         DinoRenderer.Desenhar(g, dinos[0], new Rectangle(x, y, diam, diam));
     }
 
-    /// <summary>
-    /// Pirâmide: 3 dinos na base, 2 no meio, 1 no topo.
-    /// Cuidado especial: dinos da mesma espécie não podem ser adjacentes
-    /// horizontal/verticalmente (regra do manual). Mostramos a estrutura
-    /// real mesmo que a DLL aceite invalidamente.
-    /// </summary>
-    private static void DesenharPiramide(Graphics g, List<string> dinos, Rectangle area)
+    // Esta funcao desenha as caixas explicativas do botao Instrucoes.
+    private void DesenharInstrucoes(Graphics g)
     {
-        int yBase = area.Y + 30;
-        int alturaDisp = area.Height - 38;
-        int diam = Math.Min(28, alturaDisp / 3 - 2);
-        int gap = 3;
+        DesenharInstrucao(g, AreaPct(0.02f, 0.02f, 0.36f, 0.13f),
+            "Floresta da Igualdade",
+            "Apenas dinossauros da mesma especie. Preencha da esquerda para a direita. Pontua 2/4/8/12/18/24.");
 
-        // 3 níveis: base (3), meio (2), topo (1)
-        int xCentro = area.X + area.Width / 2;
-        int yLinha1 = yBase + alturaDisp - diam;                    // base
-        int yLinha2 = yLinha1 - diam - gap;                         // meio
-        int yLinha3 = yLinha2 - diam - gap;                         // topo
+        DesenharInstrucao(g, AreaPct(0.03f, 0.33f, 0.34f, 0.13f),
+            "Mata Tripla",
+            "Pode ter ate 3 dinossauros de qualquer especie. Vale 7 pontos se tiver exatamente 3, senao vale 0.");
 
-        // Posicões em ordem: 0,1,2 (base), 3,4 (meio), 5 (topo)
-        var posicoes = new (int x, int y)[]
-        {
-            (xCentro - diam - gap, yLinha1),
-            (xCentro,              yLinha1),
-            (xCentro + diam + gap, yLinha1),
-            (xCentro - diam / 2 - gap / 2, yLinha2),
-            (xCentro + diam / 2 + gap / 2, yLinha2),
-            (xCentro,              yLinha3)
-        };
+        DesenharInstrucao(g, AreaPct(0.03f, 0.66f, 0.36f, 0.14f),
+            "Pradaria do Amor",
+            "Aceita qualquer especie. Cada par da mesma especie vale 5 pontos. Pode ter mais de um par.");
 
-        // Desenha slots vazios sempre
-        using (var penSlot = new Pen(Color.FromArgb(80, 80, 80, 80), 1f) { DashStyle = DashStyle.Dot })
-        {
-            foreach (var (px, py) in posicoes)
-                g.DrawEllipse(penSlot, px - diam / 2, py, diam, diam);
-        }
+        DesenharInstrucao(g, AreaPct(0.62f, 0.07f, 0.34f, 0.15f),
+            "Rei da Selva",
+            "Apenas 1 dinossauro. Vale 7 pontos se voce tiver mais dessa especie que cada oponente; empate nao conta.");
 
-        for (int i = 0; i < dinos.Count && i < posicoes.Length; i++)
-        {
-            var (px, py) = posicoes[i];
-            DinoRenderer.Desenhar(g, dinos[i], new Rectangle(px - diam / 2, py, diam, diam));
-        }
+        DesenharInstrucao(g, AreaPct(0.55f, 0.36f, 0.42f, 0.14f),
+            "Campina da Diferenca",
+            "Apenas especies diferentes. Preencha da esquerda para a direita. Pontua 1/3/6/10/15/21.");
+
+        DesenharInstrucao(g, AreaPct(0.57f, 0.64f, 0.39f, 0.14f),
+            "Ilha Solitaria",
+            "Apenas 1 dinossauro. Vale 7 pontos se ele for o unico da especie no seu zoologico; senao vale 0.");
+
+        DesenharInstrucao(g, AreaPct(0.38f, 0.78f, 0.26f, 0.13f),
+            "Rio",
+            "Zona especial. Sempre pode receber dinossauro, independente do dado. Cada dinossauro no rio vale 1 ponto.");
+
+        DesenharInstrucao(g, AreaPct(0.37f, 0.01f, 0.26f, 0.12f),
+            "Dado",
+            "O dado limita onde voce pode colocar: FL floresta, PR pradaria, AL esquerda, WC direita, VZ vazio, TI sem T-Rex. Quem esta com o dado ignora essa restricao.");
     }
 
+    // Esta funcao cuida de desenhar uma unica caixa de explicacao.
+    private static void DesenharInstrucao(Graphics g, Rectangle area, string titulo, string texto)
+    {
+        using var fundo = new SolidBrush(Color.FromArgb(238, 255, 255, 255));
+        using var borda = new Pen(Color.FromArgb(90, 140, 190), 1.4f);
+        using var fonteTitulo = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+        using var fonteTexto = new Font("Segoe UI", 8.2f);
+        using var brushTexto = new SolidBrush(Color.Black);
+
+        g.FillRoundedRect(fundo, area, 5);
+        g.DrawRoundedRect(borda, area, 5);
+        var tituloRect = new Rectangle(area.X + 8, area.Y + 6, area.Width - 16, 20);
+        var textoRect = new Rectangle(area.X + 8, area.Y + 28, area.Width - 16, area.Height - 34);
+        g.DrawString(titulo, fonteTitulo, brushTexto, tituloRect);
+        g.DrawString(texto, fonteTexto, brushTexto, textoRect);
+    }
+
+    // A funcao serve para desenhar o movimento de queda do dinossauro.
     private void DesenharAnimacao(Graphics g, string codDino, Rectangle areaDest)
     {
-        // Calcula posição final dentro do cercado (mesma lógica do desenho linear/piramide simplificada)
+        // Calcula posicao final dentro do cercado (mesma logica do desenho linear/piramide simplificada)
         int diam = Math.Min(36, areaDest.Width / 6);
         if (diam < 22) diam = 22;
         int xFim = areaDest.X + areaDest.Width / 2 - diam / 2;
@@ -564,7 +574,7 @@ public class TabuleiroControl : Control
     }
 
     /// <summary>
-    /// Validação visual local. A validação real é da DLL.
+    /// Validacao visual local. A validacao real A da DLL.
     /// </summary>
     private bool CercadoValidoParaDado(string cod)
     {
@@ -589,6 +599,7 @@ public class TabuleiroControl : Control
         }
     }
 
+    // Esta funcao faz mudar o cursor e destacar o cercado embaixo do mouse.
     protected override void OnMouseMove(MouseEventArgs e)
     {
         base.OnMouseMove(e);
@@ -602,6 +613,7 @@ public class TabuleiroControl : Control
         }
     }
 
+    // Esta funcao cuida de limpar o destaque quando o mouse sai do tabuleiro.
     protected override void OnMouseLeave(EventArgs e)
     {
         base.OnMouseLeave(e);
@@ -610,6 +622,7 @@ public class TabuleiroControl : Control
         Invalidate();
     }
 
+    // A funcao serve para transformar o clique no tabuleiro em uma selecao de cercado.
     protected override void OnMouseClick(MouseEventArgs e)
     {
         base.OnMouseClick(e);
@@ -619,6 +632,7 @@ public class TabuleiroControl : Control
             CercadoClicado?.Invoke(this, cercado);
     }
 
+    // Esta funcao faz aceitar o arrastar de dinossauro para o tabuleiro.
     protected override void OnDragEnter(DragEventArgs drgevent)
     {
         base.OnDragEnter(drgevent);
@@ -627,6 +641,7 @@ public class TabuleiroControl : Control
             : DragDropEffects.None;
     }
 
+    // Esta funcao cuida de validar o cercado enquanto o dinossauro esta sendo arrastado.
     protected override void OnDragOver(DragEventArgs drgevent)
     {
         base.OnDragOver(drgevent);
@@ -642,6 +657,7 @@ public class TabuleiroControl : Control
         }
     }
 
+    // A funcao serve para soltar o dinossauro no cercado escolhido.
     protected override void OnDragDrop(DragEventArgs drgevent)
     {
         base.OnDragDrop(drgevent);
@@ -653,6 +669,7 @@ public class TabuleiroControl : Control
             CercadoClicado?.Invoke(this, cercado);
     }
 
+    // Esta funcao faz descobrir qual cercado existe em uma coordenada da tela.
     private string? CercadoEm(Point ponto)
     {
         foreach (var kv in _formasCercados.Where(kv => kv.Key != "RI"))
@@ -671,18 +688,21 @@ public class TabuleiroControl : Control
 
 internal static class GraphicsExtensions
 {
+    // Esta funcao cuida de preencher retangulos com cantos arredondados.
     public static void FillRoundedRect(this Graphics g, Brush brush, Rectangle r, int raio)
     {
         using var path = MontarRoundedPath(r, raio);
         g.FillPath(brush, path);
     }
 
+    // A funcao serve para desenhar bordas arredondadas.
     public static void DrawRoundedRect(this Graphics g, Pen pen, Rectangle r, int raio)
     {
         using var path = MontarRoundedPath(r, raio);
         g.DrawPath(pen, path);
     }
 
+    // Esta funcao faz montar o caminho grafico de um retangulo arredondado.
     private static GraphicsPath MontarRoundedPath(Rectangle r, int raio)
     {
         var path = new GraphicsPath();
@@ -695,3 +715,5 @@ internal static class GraphicsExtensions
         return path;
     }
 }
+
+

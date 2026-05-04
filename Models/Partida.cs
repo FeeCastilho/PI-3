@@ -33,3 +33,4 @@ public class JogadaTurno
     public string CodigoDinossauro { get; set; } = "";
     public string CodigoCercado { get; set; } = "";
 }
+

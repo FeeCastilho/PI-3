@@ -1,8 +1,7 @@
 namespace DraftosaurusClient.Models;
 
 /// <summary>
-/// Representa um dinossauro do jogo, com código, nome e cor.
-/// Códigos: Br, Ep, Et, Pa, Ti, Tr.
+/// Representa uma especie de dinossauro.
 /// </summary>
 public class Dinossauro
 {
@@ -10,15 +9,14 @@ public class Dinossauro
     public string Nome { get; set; } = "";
     public Color Cor { get; set; } = Color.Gray;
 
-    /// <summary>Mapa estático código -> cor, usado quando a DLL não devolve o RGB.</summary>
     public static readonly Dictionary<string, Color> CoresPadrao = new()
     {
-        { "Br", Color.MediumPurple },   // Braquiossauro - Roxo
-        { "Ep", Color.DarkOrange },     // Espinossauro - Laranja
-        { "Et", Color.RoyalBlue },      // Estegossauro - Azul
-        { "Pa", Color.ForestGreen },    // Parasaurolófo - Verde
-        { "Ti", Color.Firebrick },      // Tiranossauro - Vermelho
-        { "Tr", Color.Gold }            // Tricerátops - Amarelo
+        { "Br", Color.MediumPurple },
+        { "Ep", Color.DarkOrange },
+        { "Et", Color.RoyalBlue },
+        { "Pa", Color.ForestGreen },
+        { "Ti", Color.Firebrick },
+        { "Tr", Color.Gold }
     };
 
     public static readonly Dictionary<string, string> NomesPadrao = new()
@@ -26,14 +24,17 @@ public class Dinossauro
         { "Br", "Braquiossauro" },
         { "Ep", "Espinossauro" },
         { "Et", "Estegossauro" },
-        { "Pa", "Parasaurolófo" },
+        { "Pa", "Parassaurolofo" },
         { "Ti", "Tiranossauro" },
-        { "Tr", "Tricerátops" }
+        { "Tr", "Triceratops" }
     };
 
+    // Esta funcao cuida de iniciar 'CorPorCodigo' do programa.
     public static Color CorPorCodigo(string codigo) =>
         CoresPadrao.TryGetValue(codigo, out var c) ? c : Color.Gray;
 
+    // A funcao serve para iniciar 'NomePorCodigo' do programa.
     public static string NomePorCodigo(string codigo) =>
         NomesPadrao.TryGetValue(codigo, out var n) ? n : codigo;
 }
+

@@ -2,11 +2,6 @@ using DraftosaurusClient.Services;
 
 namespace DraftosaurusClient.Forms;
 
-/// <summary>
-/// Sala de espera após entrar na partida. Mostra lista de jogadores,
-/// permite copiar id+senha do jogador e iniciar o jogo.
-/// Após Iniciar() abre a tela do jogo (FormJogo) e fecha esta.
-/// </summary>
 public class FormSalaEspera : Form
 {
     private readonly DraftService _svc;
@@ -18,6 +13,7 @@ public class FormSalaEspera : Form
     private readonly Label _lblInfo;
     private readonly System.Windows.Forms.Timer _timer;
 
+    // A funcao serve para iniciar 'FormSalaEspera' do programa.
     public FormSalaEspera(DraftService svc, int idPartida, int idJogador, string senhaJogador, string nomeJogador)
     {
         _svc = svc;
@@ -26,7 +22,7 @@ public class FormSalaEspera : Form
         _senhaJogador = senhaJogador;
         _nomeJogador = nomeJogador;
 
-        Text = $"Sala de espera — Partida {idPartida}";
+        Text = $"Sala de espera - Partida {idPartida}";
         Width = 520;
         Height = 460;
         StartPosition = FormStartPosition.CenterScreen;
@@ -38,15 +34,15 @@ public class FormSalaEspera : Form
             Location = new Point(20, 20),
             AutoSize = true,
             Font = new Font("Segoe UI", 10f),
-            Text = $"Você entrou como: {nomeJogador} (Id {idJogador})\n" +
+            Text = $"Voce entrou como: {nomeJogador} (Id {idJogador})\n" +
                    $"Sua senha de jogador: {senhaJogador}\n" +
-                   $"⚠ Anote a senha — ela é necessária pra jogar."
+                   "Anote a senha; ela e necessaria para jogar."
         };
         Controls.Add(_lblInfo);
 
         var btnCopiar = new Button
         {
-            Text = "📋 Copiar (Id, Senha)",
+            Text = "Copiar (Id, Senha)",
             Location = new Point(20, 90),
             Size = new Size(170, 28)
         };
@@ -75,7 +71,7 @@ public class FormSalaEspera : Form
 
         var btnIniciar = new Button
         {
-            Text = "▶ Iniciar partida",
+            Text = "Iniciar partida",
             Location = new Point(20, 350),
             Size = new Size(180, 36),
             BackColor = Color.LimeGreen,
@@ -98,7 +94,7 @@ public class FormSalaEspera : Form
         var lblObs = new Label
         {
             Text = "Qualquer jogador pode iniciar a partida.\n" +
-                   "Após iniciar, ninguém mais pode entrar.",
+                   "Depois de iniciar, ninguem mais pode entrar.",
             Location = new Point(210, 355),
             AutoSize = true,
             ForeColor = Color.Gray,
@@ -106,7 +102,6 @@ public class FormSalaEspera : Form
         };
         Controls.Add(lblObs);
 
-        // Timer para atualizar lista de jogadores e detectar início remoto
         _timer = new System.Windows.Forms.Timer { Interval = 2500 };
         _timer.Tick += (_, _) => AtualizarSala();
         _timer.Start();
@@ -115,16 +110,15 @@ public class FormSalaEspera : Form
         FormClosing += (_, _) => _timer.Stop();
     }
 
+    // Esta funcao executa a etapa 'AtualizarSala' do programa.
     private void AtualizarSala()
     {
         try
         {
-            // Verifica se outro jogador iniciou a partida
             var estado = _svc.VerificarPartida(_idPartida);
             if (estado.Status == 'J')
             {
                 _timer.Stop();
-                // BeginInvoke para sair do contexto do tick antes de abrir o modal
                 BeginInvoke((Action)AbrirJogo);
                 return;
             }
@@ -133,22 +127,22 @@ public class FormSalaEspera : Form
             _lstJogadores.Items.Clear();
             foreach (var j in jogs)
             {
-                string marca = j.Id == _idJogador ? "  ◀ você" : "";
-                _lstJogadores.Items.Add($"#{j.Id} — {j.Nome}{marca}");
+                string marca = j.Id == _idJogador ? "  <- voce" : "";
+                _lstJogadores.Items.Add($"#{j.Id} - {j.Nome}{marca}");
             }
         }
         catch
         {
-            // silencia erros transitórios de polling
         }
     }
 
+    // Esta funcao cuida de iniciar a partida e descobrir quem ficou com o dado.
     private void Iniciar()
     {
         try
         {
             var (idDado, face) = _svc.Iniciar(_idJogador, _senhaJogador);
-            MessageBox.Show($"Partida iniciada!\nJogador #{idDado} começa com o dado.\nFace: {face}",
+            MessageBox.Show($"Partida iniciada!\nJogador #{idDado} comeca com o dado.\nFace: {face}",
                 "Iniciado", MessageBoxButtons.OK, MessageBoxIcon.Information);
             AbrirJogo();
         }
@@ -159,6 +153,7 @@ public class FormSalaEspera : Form
         }
     }
 
+    // A funcao serve para iniciar 'AbrirJogo' do programa.
     private void AbrirJogo()
     {
         _timer.Stop();
@@ -169,3 +164,4 @@ public class FormSalaEspera : Form
         Close();
     }
 }
+

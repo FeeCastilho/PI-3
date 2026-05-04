@@ -5,7 +5,7 @@ namespace DraftosaurusClient.Forms;
 
 /// <summary>
 /// Tela inicial: o jogador escolhe entre criar uma nova partida
-/// ou entrar em uma já aberta.
+/// ou entrar em uma ja aberta.
 /// </summary>
 public class FormLobby : Form
 {
@@ -13,11 +13,12 @@ public class FormLobby : Form
     private readonly ListView _lv;
     private readonly TextBox _txtNomeJogador;
     private readonly TextBox _txtSenhaPartida;
-    private readonly Button _btnEntrar, _btnCriar, _btnAtualizar;
+    private readonly Button _btnEntrar, _btnCriar, _btnotualizar;
 
+    // A funcao serve para iniciar 'FormLobby' do programa.
     public FormLobby()
     {
-        Text = "Draftosaurus — Lobby";
+        Text = "Draftosaurus - Lobby";
         Width = 720;
         Height = 520;
         StartPosition = FormStartPosition.CenterScreen;
@@ -26,7 +27,7 @@ public class FormLobby : Form
 
         var lblTitulo = new Label
         {
-            Text = "🦕 Draftosaurus",
+            Text = "Draftosaurus",
             Font = new Font("Segoe UI", 22f, FontStyle.Bold),
             ForeColor = Color.FromArgb(120, 60, 20),
             Location = new Point(20, 14),
@@ -47,7 +48,7 @@ public class FormLobby : Form
         // ListView de partidas
         var lblPart = new Label
         {
-            Text = "Partidas disponíveis:",
+            Text = "Partidas disponiveis:",
             Font = new Font("Segoe UI", 10f, FontStyle.Bold),
             Location = new Point(20, 90),
             AutoSize = true
@@ -69,18 +70,18 @@ public class FormLobby : Form
         _lv.Columns.Add("Status", 100);
         Controls.Add(_lv);
 
-        _btnAtualizar = new Button
+        _btnotualizar = new Button
         {
-            Text = "🔄 Atualizar lista",
+            Text = "Atualizar lista",
             Location = new Point(20, 365),
             Size = new Size(140, 32)
         };
-        _btnAtualizar.Click += (_, _) => CarregarPartidas();
-        Controls.Add(_btnAtualizar);
+        _btnotualizar.Click += (_, _) => CarregarPartidas();
+        Controls.Add(_btnotualizar);
 
         _btnCriar = new Button
         {
-            Text = "➕ Criar nova partida",
+            Text = "Criar nova partida",
             Location = new Point(170, 365),
             Size = new Size(160, 32)
         };
@@ -89,7 +90,7 @@ public class FormLobby : Form
 
         var btnDiag = new Button
         {
-            Text = "🔧 Diagnóstico DLL",
+            Text = "Diagnostico DLL",
             Location = new Point(340, 365),
             Size = new Size(140, 32),
             ForeColor = Color.Gray
@@ -116,7 +117,7 @@ public class FormLobby : Form
 
         _btnEntrar = new Button
         {
-            Text = "▶ Entrar na partida selecionada",
+            Text = "Entrar na partida selecionada",
             Location = new Point(475, 410),
             Size = new Size(225, 32),
             BackColor = Color.LimeGreen,
@@ -130,6 +131,7 @@ public class FormLobby : Form
         Load += (_, _) => CarregarPartidas();
     }
 
+    // Esta funcao executa a etapa 'CarregarPartidas' do programa.
     private void CarregarPartidas()
     {
         _lv.Items.Clear();
@@ -153,7 +155,7 @@ public class FormLobby : Form
             if (partidas.Count == 0)
             {
                 var vazio = new ListViewItem("");
-                vazio.SubItems.Add("(nenhuma partida aberta — crie uma!)");
+                vazio.SubItems.Add("(nenhuma partida aberta - crie uma!)");
                 _lv.Items.Add(vazio);
             }
         }
@@ -164,6 +166,7 @@ public class FormLobby : Form
         }
     }
 
+    // Esta funcao cuida de iniciar 'StatusTexto' do programa.
     private static string StatusTexto(char s) => s switch
     {
         'A' => "Aberta",
@@ -172,13 +175,14 @@ public class FormLobby : Form
         _ => s.ToString()
     };
 
+    // A funcao serve para iniciar 'AbrirCriarPartida' do programa.
     private void AbrirCriarPartida()
     {
         using var dlg = new FormCriarPartida(_svc);
         if (dlg.ShowDialog(this) == DialogResult.OK)
         {
             CarregarPartidas();
-            // Pré-seleciona a partida criada
+            // Pre-seleciona a partida criada
             foreach (ListViewItem it in _lv.Items)
             {
                 if (it.Tag is Partida p && p.Id == dlg.IdCriado)
@@ -192,13 +196,13 @@ public class FormLobby : Form
     }
 
     /// <summary>
-    /// Janela de diagnóstico — chama métodos da DLL e mostra o que vem.
-    /// Útil para verificar se a integração está funcionando.
+    /// Janela de diagnostico a chama metodos da DLL e mostra o que vem.
+    /// util para verificar se a integracao esta funcionando.
     /// </summary>
     private void AbrirDiagnostico()
     {
         var sb = new System.Text.StringBuilder();
-        sb.AppendLine($"Versão DLL: {_svc.Versao}");
+        sb.AppendLine($"Versao DLL: {_svc.Versao}");
         sb.AppendLine();
 
         try
@@ -240,7 +244,7 @@ public class FormLobby : Form
 
         var dlg = new Form
         {
-            Text = "Diagnóstico DLL",
+            Text = "Diagnostico DLL",
             Width = 700,
             Height = 500,
             StartPosition = FormStartPosition.CenterParent
@@ -259,17 +263,18 @@ public class FormLobby : Form
         dlg.ShowDialog(this);
     }
 
+    // Esta funcao executa a etapa 'EntrarPartida' do programa.
     private void EntrarPartida()
     {
         if (_lv.SelectedItems.Count == 0 || _lv.SelectedItems[0].Tag is not Partida partida)
         {
-            MessageBox.Show("Selecione uma partida na lista.", "Atenção",
+            MessageBox.Show("Selecione uma partida na lista.", "Atencao",
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
         if (string.IsNullOrWhiteSpace(_txtNomeJogador.Text))
         {
-            MessageBox.Show("Informe seu nome.", "Atenção",
+            MessageBox.Show("Informe seu nome.", "Atencao",
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
@@ -322,7 +327,7 @@ public class FormLobby : Form
                     SenhaJogador = senhaJ
                 });
             }
-            // Avança para sala de espera
+            // Avanca para sala de espera
             AbrirSala(partida.Id, idJ, senhaJ, nome);
         }
         catch (Exception ex)
@@ -335,6 +340,7 @@ public class FormLobby : Form
         }
     }
 
+    // Esta funcao cuida de iniciar 'TentarReentrarComSenhaJogador' do programa.
     private bool TentarReentrarComSenhaJogador(Partida partida, string nome, string senhaJogador)
     {
         if (string.IsNullOrWhiteSpace(senhaJogador)) return false;
@@ -363,6 +369,7 @@ public class FormLobby : Form
         }
     }
 
+    // A funcao serve para iniciar 'AbrirSala' do programa.
     private void AbrirSala(int idPartida, int idJogador, string senhaJogador, string nome)
     {
         Hide();
@@ -372,6 +379,7 @@ public class FormLobby : Form
         CarregarPartidas();
     }
 
+    // Esta funcao executa a etapa 'SenhaJogadorFunciona' do programa.
     private bool SenhaJogadorFunciona(int idJogador, string senhaJogador)
     {
         try
@@ -385,3 +393,5 @@ public class FormLobby : Form
         }
     }
 }
+
+

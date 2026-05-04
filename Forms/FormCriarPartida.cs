@@ -2,7 +2,7 @@ using DraftosaurusClient.Services;
 
 namespace DraftosaurusClient.Forms;
 
-/// <summary>Diálogo simples para criar uma nova partida.</summary>
+/// <summary>Dialogo simples para criar uma nova partida.</summary>
 public class FormCriarPartida : Form
 {
     private readonly DraftService _svc;
@@ -12,6 +12,7 @@ public class FormCriarPartida : Form
 
     public int IdCriado { get; private set; }
 
+    // Esta funcao cuida de iniciar 'FormCriarPartida' do programa.
     public FormCriarPartida(DraftService svc)
     {
         _svc = svc;
@@ -23,9 +24,9 @@ public class FormCriarPartida : Form
         MinimizeBox = false;
         StartPosition = FormStartPosition.CenterParent;
 
-        var l1 = new Label { Text = "Nome da partida (até 15):", Location = new Point(15, 18), AutoSize = true };
+        var l1 = new Label { Text = "Nome da partida (ate 15):", Location = new Point(15, 18), AutoSize = true };
         _txtNome = new TextBox { Location = new Point(180, 14), Width = 200, MaxLength = 15 };
-        var l2 = new Label { Text = "Senha (até 10):",         Location = new Point(15, 58), AutoSize = true };
+        var l2 = new Label { Text = "Senha (ate 10):",         Location = new Point(15, 58), AutoSize = true };
         _txtSenha = new TextBox { Location = new Point(180, 54), Width = 200, MaxLength = 10 };
         var l3 = new Label { Text = "Nome do grupo:",           Location = new Point(15, 98), AutoSize = true };
         _txtGrupo = new TextBox { Location = new Point(180, 94), Width = 200 };
@@ -53,11 +54,12 @@ public class FormCriarPartida : Form
         CancelButton = btnCancel;
     }
 
+    // A funcao serve para iniciar 'BtnOk_Click' do programa.
     private void BtnOk_Click(object? sender, EventArgs e)
     {
         if (string.IsNullOrWhiteSpace(_txtNome.Text) || string.IsNullOrWhiteSpace(_txtGrupo.Text))
         {
-            MessageBox.Show("Preencha nome e grupo.", "Atenção",
+            MessageBox.Show("Preencha nome e grupo.", "Atencao",
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
@@ -75,3 +77,4 @@ public class FormCriarPartida : Form
         }
     }
 }
+
