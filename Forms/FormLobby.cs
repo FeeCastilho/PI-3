@@ -13,14 +13,15 @@ public class FormLobby : Form
     private readonly ListView _lv;
     private readonly TextBox _txtNomeJogador;
     private readonly TextBox _txtSenhaPartida;
-    private readonly Button _btnEntrar, _btnCriar, _btnotualizar;
+    private readonly Button _btnEntrar, _btnCriar, _btnAtualizar;
 
     // A funcao serve para iniciar 'FormLobby' do programa.
     public FormLobby()
     {
         Text = "Draftosaurus - Lobby";
-        Width = 720;
-        Height = 520;
+        Width = 860;
+        Height = 560;
+        MinimumSize = new Size(760, 520);
         StartPosition = FormStartPosition.CenterScreen;
         BackColor = Color.FromArgb(245, 240, 230);
         Font = new Font("Segoe UI", 9.5f);
@@ -58,7 +59,8 @@ public class FormLobby : Form
         _lv = new ListView
         {
             Location = new Point(20, 115),
-            Size = new Size(680, 240),
+            Size = new Size(800, 250),
+            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
             View = View.Details,
             FullRowSelect = true,
             GridLines = true,
@@ -70,20 +72,22 @@ public class FormLobby : Form
         _lv.Columns.Add("Status", 100);
         Controls.Add(_lv);
 
-        _btnotualizar = new Button
+        _btnAtualizar = new Button
         {
             Text = "Atualizar lista",
-            Location = new Point(20, 365),
-            Size = new Size(140, 32)
+            Location = new Point(20, 375),
+            Size = new Size(145, 34),
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Left
         };
-        _btnotualizar.Click += (_, _) => CarregarPartidas();
-        Controls.Add(_btnotualizar);
+        _btnAtualizar.Click += (_, _) => CarregarPartidas();
+        Controls.Add(_btnAtualizar);
 
         _btnCriar = new Button
         {
             Text = "Criar nova partida",
-            Location = new Point(170, 365),
-            Size = new Size(160, 32)
+            Location = new Point(175, 375),
+            Size = new Size(175, 34),
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Left
         };
         _btnCriar.Click += (_, _) => AbrirCriarPartida();
         Controls.Add(_btnCriar);
@@ -91,35 +95,38 @@ public class FormLobby : Form
         var btnDiag = new Button
         {
             Text = "Diagnostico DLL",
-            Location = new Point(340, 365),
-            Size = new Size(140, 32),
+            Location = new Point(360, 375),
+            Size = new Size(150, 34),
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Left,
             ForeColor = Color.Gray
         };
         btnDiag.Click += (_, _) => AbrirDiagnostico();
         Controls.Add(btnDiag);
 
         // Inputs para entrar
-        var lblNome = new Label { Text = "Seu nome:", Location = new Point(20, 415), AutoSize = true };
+        var lblNome = new Label { Text = "Seu nome:", Location = new Point(20, 430), AutoSize = true, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
         Controls.Add(lblNome);
-        _txtNomeJogador = new TextBox { Location = new Point(95, 412), Width = 180, MaxLength = 20 };
+        _txtNomeJogador = new TextBox { Location = new Point(100, 427), Width = 220, MaxLength = 20, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
         Controls.Add(_txtNomeJogador);
 
-        var lblSenha = new Label { Text = "Senha:", Location = new Point(290, 415), AutoSize = true };
+        var lblSenha = new Label { Text = "Senha:", Location = new Point(340, 430), AutoSize = true, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
         Controls.Add(lblSenha);
         _txtSenhaPartida = new TextBox
         {
-            Location = new Point(335, 412),
-            Width = 130,
+            Location = new Point(395, 427),
+            Width = 150,
             MaxLength = 10,
-            UseSystemPasswordChar = true
+            UseSystemPasswordChar = true,
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Left
         };
         Controls.Add(_txtSenhaPartida);
 
         _btnEntrar = new Button
         {
             Text = "Entrar na partida selecionada",
-            Location = new Point(475, 410),
-            Size = new Size(225, 32),
+            Location = new Point(560, 424),
+            Size = new Size(260, 36),
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
             BackColor = Color.LimeGreen,
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
@@ -128,7 +135,39 @@ public class FormLobby : Form
         _btnEntrar.Click += (_, _) => EntrarPartida();
         Controls.Add(_btnEntrar);
 
+        Resize += (_, _) => AjustarLayout();
+        AjustarLayout();
         Load += (_, _) => CarregarPartidas();
+    }
+
+    // A funcao serve para manter o lobby legivel em telas menores ou com escala alta.
+    private void AjustarLayout()
+    {
+        int margem = 20;
+        int larguraUtil = Math.Max(600, ClientSize.Width - margem * 2);
+        int yBotoes = Math.Max(345, ClientSize.Height - 145);
+        int yEntrada = Math.Max(405, ClientSize.Height - 88);
+
+        _lv.Size = new Size(larguraUtil, Math.Max(180, yBotoes - _lv.Top - 12));
+        _btnAtualizar.Location = new Point(margem, yBotoes);
+        _btnCriar.Location = new Point(_btnAtualizar.Right + 10, yBotoes);
+
+        var btnDiag = Controls.OfType<Button>().FirstOrDefault(b => b.Text == "Diagnostico DLL");
+        if (btnDiag != null)
+            btnDiag.Location = new Point(_btnCriar.Right + 10, yBotoes);
+
+        var lblNome = Controls.OfType<Label>().FirstOrDefault(l => l.Text == "Seu nome:");
+        var lblSenha = Controls.OfType<Label>().FirstOrDefault(l => l.Text == "Senha:");
+        if (lblNome != null) lblNome.Location = new Point(margem, yEntrada + 5);
+        _txtNomeJogador.Location = new Point(margem + 85, yEntrada);
+        _txtNomeJogador.Width = Math.Max(180, Math.Min(260, ClientSize.Width / 3));
+
+        if (lblSenha != null) lblSenha.Location = new Point(_txtNomeJogador.Right + 20, yEntrada + 5);
+        _txtSenhaPartida.Location = new Point(_txtNomeJogador.Right + 75, yEntrada);
+        _txtSenhaPartida.Width = 150;
+
+        _btnEntrar.Width = Math.Min(280, Math.Max(230, ClientSize.Width - _txtSenhaPartida.Right - 35));
+        _btnEntrar.Location = new Point(ClientSize.Width - _btnEntrar.Width - margem, yEntrada - 3);
     }
 
     // Esta funcao executa a etapa 'CarregarPartidas' do programa.

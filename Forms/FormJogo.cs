@@ -22,7 +22,7 @@ public class FormJogo : Form
     private readonly Label _lblTurno, _lblDado, _lblFaceDesc, _lblStatus, _lblJogadorVez;
     private readonly ListBox _lstJogadores;
     private readonly TextBox _txtHistorico;
-    private readonly Button _btnJogar, _btnVerOutro, _btnHistorico, _btnMudo, _btnPontuacao, _btnouto, _btnInstrucoes;
+    private readonly Button _btnJogar, _btnVerOutro, _btnHistorico, _btnMudo, _btnPontuacao, _btnAuto, _btnInstrucoes;
     private readonly System.Windows.Forms.Timer _timer;
     private readonly System.Windows.Forms.Timer _autoTimer;
 
@@ -54,7 +54,7 @@ public class FormJogo : Form
         MinimumSize = new Size(900, 620);
 
         // ============ Barra superior ============
-        var barra = new Panel { Dock = DockStyle.Top, Height = 58, BackColor = Color.FromArgb(60, 50, 40) };
+        var barra = new Panel { Dock = DockStyle.Top, Height = 82, BackColor = Color.FromArgb(60, 50, 40) };
         Controls.Add(barra);
 
         _lblTurno = new Label
@@ -77,7 +77,8 @@ public class FormJogo : Form
 
         _lblFaceDesc = new Label
         {
-            Location = new Point(180, 36), AutoSize = true,
+            Location = new Point(180, 36),
+            Size = new Size(520, 18),
             ForeColor = Color.LightYellow,
             Font = new Font("Segoe UI", 9f, FontStyle.Italic)
         };
@@ -85,7 +86,8 @@ public class FormJogo : Form
 
         _lblJogadorVez = new Label
         {
-            Location = new Point(180, 8), AutoSize = true,
+            Location = new Point(180, 8),
+            Size = new Size(520, 22),
             ForeColor = Color.LightGreen,
             Font = new Font("Segoe UI", 11f, FontStyle.Bold)
         };
@@ -122,7 +124,7 @@ public class FormJogo : Form
         _btnPontuacao.Click += (_, _) => AbrirPontuacao();
         barra.Controls.Add(_btnPontuacao);
 
-        _btnouto = new Button
+        _btnAuto = new Button
         {
             Text = "Auto: OFF",
             Width = 90, Height = 32,
@@ -132,8 +134,8 @@ public class FormJogo : Form
             ForeColor = Color.White,
             Anchor = AnchorStyles.Top | AnchorStyles.Right
         };
-        _btnouto.Click += (_, _) => AlternarAutomatico();
-        barra.Controls.Add(_btnouto);
+        _btnAuto.Click += (_, _) => AlternarAutomatico();
+        barra.Controls.Add(_btnAuto);
 
         _btnInstrucoes = new Button
         {
@@ -150,8 +152,8 @@ public class FormJogo : Form
 
         _lblStatus = new Label
         {
-            Location = new Point(380, 8),
-            Size = new Size(400, 50),
+            Location = new Point(15, 58),
+            Size = new Size(760, 20),
             ForeColor = Color.White,
             Font = new Font("Segoe UI", 9f),
             TextAlign = ContentAlignment.MiddleRight,
@@ -165,9 +167,12 @@ public class FormJogo : Form
         {
             _btnMudo.Left = barra.Width - _btnMudo.Width - 12;
             _btnPontuacao.Left = _btnMudo.Left - _btnPontuacao.Width - 8;
-            _btnouto.Left = _btnPontuacao.Left - _btnouto.Width - 8;
-            _btnInstrucoes.Left = _btnouto.Left - _btnInstrucoes.Width - 8;
-            _lblStatus.Width = Math.Max(200, _btnInstrucoes.Left - 380);
+            _btnAuto.Left = _btnPontuacao.Left - _btnAuto.Width - 8;
+            _btnInstrucoes.Left = _btnAuto.Left - _btnInstrucoes.Width - 8;
+            int larguraTexto = Math.Max(160, _btnInstrucoes.Left - 190);
+            _lblJogadorVez.Width = larguraTexto;
+            _lblFaceDesc.Width = larguraTexto;
+            _lblStatus.Width = Math.Max(260, barra.Width - 30);
         }
         barra.Resize += (_, _) => ReposicionarBarra();
         ReposicionarBarra();
@@ -547,8 +552,8 @@ public class FormJogo : Form
     private void AlternarAutomatico()
     {
         _autoLigado = !_autoLigado;
-        _btnouto.Text = _autoLigado ? "Auto: ON" : "Auto: OFF";
-        _btnouto.BackColor = _autoLigado ? Color.DarkGreen : Color.FromArgb(80, 70, 60);
+        _btnAuto.Text = _autoLigado ? "Auto: ON" : "Auto: OFF";
+        _btnAuto.BackColor = _autoLigado ? Color.DarkGreen : Color.FromArgb(80, 70, 60);
 
         if (_autoLigado)
         {

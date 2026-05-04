@@ -17,25 +17,41 @@ public class FormCriarPartida : Form
     {
         _svc = svc;
         Text = "Criar nova partida";
-        Width = 420;
-        Height = 260;
+        Width = 520;
+        Height = 290;
+        MinimumSize = new Size(500, 280);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
         StartPosition = FormStartPosition.CenterParent;
 
-        var l1 = new Label { Text = "Nome da partida (ate 15):", Location = new Point(15, 18), AutoSize = true };
-        _txtNome = new TextBox { Location = new Point(180, 14), Width = 200, MaxLength = 15 };
-        var l2 = new Label { Text = "Senha (ate 10):",         Location = new Point(15, 58), AutoSize = true };
-        _txtSenha = new TextBox { Location = new Point(180, 54), Width = 200, MaxLength = 10 };
-        var l3 = new Label { Text = "Nome do grupo:",           Location = new Point(15, 98), AutoSize = true };
-        _txtGrupo = new TextBox { Location = new Point(180, 94), Width = 200 };
+        var layout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            Padding = new Padding(18),
+            ColumnCount = 2,
+            RowCount = 5
+        };
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 170));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
+
+        var l1 = new Label { Text = "Nome da partida (ate 15):", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
+        _txtNome = new TextBox { Dock = DockStyle.Fill, MaxLength = 15, Margin = new Padding(0, 7, 0, 0) };
+        var l2 = new Label { Text = "Senha (ate 10):", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
+        _txtSenha = new TextBox { Dock = DockStyle.Fill, MaxLength = 10, Margin = new Padding(0, 7, 0, 0) };
+        var l3 = new Label { Text = "Nome do grupo:", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
+        _txtGrupo = new TextBox { Dock = DockStyle.Fill, Margin = new Padding(0, 7, 0, 0) };
 
         var btnOk = new Button
         {
             Text = "Criar",
-            Location = new Point(180, 150),
-            Width = 95,
+            Width = 110,
+            Height = 34,
             BackColor = Color.LimeGreen,
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat
@@ -44,12 +60,29 @@ public class FormCriarPartida : Form
         var btnCancel = new Button
         {
             Text = "Cancelar",
-            Location = new Point(285, 150),
-            Width = 95,
+            Width = 110,
+            Height = 34,
             DialogResult = DialogResult.Cancel
         };
 
-        Controls.AddRange(new Control[] { l1, _txtNome, l2, _txtSenha, l3, _txtGrupo, btnOk, btnCancel });
+        var botoes = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.RightToLeft,
+            WrapContents = false
+        };
+        botoes.Controls.Add(btnCancel);
+        botoes.Controls.Add(btnOk);
+
+        layout.Controls.Add(l1, 0, 0);
+        layout.Controls.Add(_txtNome, 1, 0);
+        layout.Controls.Add(l2, 0, 1);
+        layout.Controls.Add(_txtSenha, 1, 1);
+        layout.Controls.Add(l3, 0, 2);
+        layout.Controls.Add(_txtGrupo, 1, 2);
+        layout.Controls.Add(botoes, 0, 4);
+        layout.SetColumnSpan(botoes, 2);
+        Controls.Add(layout);
         AcceptButton = btnOk;
         CancelButton = btnCancel;
     }
